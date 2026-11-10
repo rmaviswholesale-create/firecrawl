@@ -220,11 +220,56 @@ describe("Self-hosted browser engine", () => {
     scrapeTimeout,
   );
 
-  it("rejects an invalid network urlPattern", async () => {
+  itIf(LOCAL_BROWSER)(
+    "matches urlPattern as text with * wildcards, not as a regex",
+    async () => {
+      const capture = async (urlPattern: string) =>
+        (
+          await scrape(
+            {
+              url: INTERACT_URL,
+              formats: [{ type: "network", urlPattern }],
+              waitFor: 1000,
+            },
+            identity,
+          )
+        ).network;
+
+      expect((await capture("example.json*source=xray"))?.total).toBe(1);
+      // A pattern built to make a regex engine backtrack is just text here.
+      expect((await capture("^(a+)+$"))?.total).toBe(0);
+    },
+    scrapeTimeout,
+  );
+
+  itIf(LOCAL_BROWSER)(
+    "ends a scrape whose action never finishes and keeps serving",
+    async () => {
+      const stuck = await scrapeRaw(
+        {
+          url: INTERACT_URL,
+          timeout: 10000,
+          actions: [{ type: "executeJavascript", script: "while(true){}" }],
+        },
+        identity,
+      );
+      expect(stuck.statusCode).not.toBe(200);
+      expect(stuck.body.success).toBe(false);
+
+      const next = await scrape(
+        { url: INTERACT_URL, formats: ["markdown"] },
+        identity,
+      );
+      expect(next.markdown).toContain("Interaction Test");
+    },
+    scrapeTimeout,
+  );
+
+  it("rejects an oversized network urlPattern", async () => {
     const raw = await scrapeRaw(
       {
         url: INTERACT_URL,
-        formats: [{ type: "network", urlPattern: "(" }],
+        formats: [{ type: "network", urlPattern: "a".repeat(501) }],
       },
       identity,
     );

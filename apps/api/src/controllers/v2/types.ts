@@ -416,7 +416,7 @@ const changeTrackingFormatWithOptions = z.strictObject({
     })
     .superRefine(addStrictSchemaIssue),
   modes: z.enum(["json", "git-diff"]).array().prefault([]),
-  tag: z.string().or(z.null()).prefault(null),
+  tag: z.string().max(256).or(z.null()).prefault(null),
   // Time travel: compare against the page as it was at this point instead of
   // the previous scrape. An ISO 8601 timestamp, or an age such as "30m",
   // "24h", "7d" or "2w". Needs the local snapshot store (self-hosted).
@@ -469,23 +469,10 @@ const networkFormatWithOptions = z.strictObject({
     .array()
     .min(1)
     .prefault(["xhr", "fetch"]),
-  // Only record requests whose URL matches this regular expression.
-  urlPattern: z
-    .string()
-    .max(500)
-    .optional()
-    .refine(
-      val => {
-        if (val === undefined) return true;
-        try {
-          new RegExp(val);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: "urlPattern must be a valid regular expression." },
-    ),
+  // Only record requests whose URL contains this text. `*` matches any run
+  // of characters. Deliberately not a regular expression: a caller-supplied
+  // regex can be made to backtrack for minutes on a crafted URL.
+  urlPattern: z.string().min(1).max(500).optional(),
   includeBodies: z.boolean().prefault(true),
   maxRequests: z.int().min(1).max(200).prefault(50),
   maxBodyBytes: z

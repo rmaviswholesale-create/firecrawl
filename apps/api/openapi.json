@@ -9102,7 +9102,8 @@
                 },
                 "urlPattern": {
                   "type": "string",
-                  "description": "Only record requests whose URL matches this regular expression."
+                  "maxLength": 500,
+                  "description": "Only record requests whose URL contains this text. `*` matches any run of characters. Not a regular expression."
                 },
                 "includeBodies": {
                   "type": "boolean",

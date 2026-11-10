@@ -62,6 +62,9 @@ const ACTION_TYPES = new Set([
 ]);
 
 const MAX_ACTIONS = 50;
+// Each screenshot or PDF is held in memory, base64-encoded, until the response
+// is sent.
+const MAX_CAPTURE_ACTIONS = 10;
 // A click on an element that never appears should fail as an action error
 // well before the whole scrape times out.
 const CLICK_TIMEOUT_MS = 10_000;
@@ -83,6 +86,12 @@ export function validateActions(actions: unknown): string | undefined {
     if (typeof type !== 'string' || !ACTION_TYPES.has(type)) {
       return `action ${index} has unsupported type "${String(type)}"`;
     }
+  }
+  const captures = actions.filter(
+    (action) => action.type === 'screenshot' || action.type === 'pdf',
+  ).length;
+  if (captures > MAX_CAPTURE_ACTIONS) {
+    return `actions cannot include more than ${MAX_CAPTURE_ACTIONS} screenshot or pdf steps`;
   }
   return undefined;
 }
@@ -268,6 +277,8 @@ const DEFAULT_RESOURCE_TYPES = ['xhr', 'fetch'];
 const DEFAULT_MAX_REQUESTS = 50;
 const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
 const MAX_REQUEST_BODY_BYTES = 16 * 1024;
+// Bodies kept across one scrape. Past this, entries are recorded without one.
+const MAX_TOTAL_BODY_BYTES = 25 * 1024 * 1024;
 
 const isJson = (contentType: string | undefined): boolean =>
   !!contentType && /[/+]json\b/i.test(contentType);
@@ -278,17 +289,30 @@ const isText = (contentType: string | undefined): boolean =>
     contentType,
   );
 
-/** Compiles a user-supplied pattern; a bad pattern yields a reason instead. */
-export function compileUrlPattern(
-  pattern: string | undefined,
-): { regex?: RegExp; error?: string } {
-  if (!pattern) return {};
-  if (pattern.length > 500) return { error: 'urlPattern is too long' };
-  try {
-    return { regex: new RegExp(pattern) };
-  } catch (error) {
-    return { error: `urlPattern is not a valid regex: ${errorMessage(error)}` };
+/**
+ * Whether a URL matches a capture pattern: the pattern's text must appear in
+ * the URL, and `*` stands for any run of characters. This is not a regular
+ * expression on purpose: a caller-supplied regex can be made to backtrack for
+ * minutes on a crafted URL, and it would do so on the service's only thread.
+ * Matching here is linear in the URL length.
+ */
+export function urlMatchesPattern(url: string, pattern: string): boolean {
+  let from = 0;
+  for (const part of pattern.split('*')) {
+    if (part === '') continue;
+    const at = url.indexOf(part, from);
+    if (at === -1) return false;
+    from = at + part.length;
   }
+  return true;
+}
+
+/** Returns a reason when the pattern is unusable, undefined when ok. */
+export function validateUrlPattern(pattern: unknown): string | undefined {
+  if (pattern === undefined) return undefined;
+  if (typeof pattern !== 'string') return 'urlPattern must be a string';
+  if (pattern.length > 500) return 'urlPattern is too long';
+  return undefined;
 }
 
 /**
@@ -298,7 +322,6 @@ export function compileUrlPattern(
 export function startNetworkCapture(
   page: Page,
   options: NetworkCaptureOptions,
-  urlRegex: RegExp | undefined,
 ): { collect: () => Promise<NetworkCaptureResult> } {
   const resourceTypes = new Set(
     options.resourceTypes?.length
@@ -311,6 +334,7 @@ export function startNetworkCapture(
   const startedAt = Date.now();
   const pending: Promise<NetworkEntry | null>[] = [];
   let total = 0;
+  let bodyBytes = 0;
 
   const record = async (
     response: PlaywrightResponse,
@@ -331,9 +355,22 @@ export function startNetworkCapture(
       entry.requestBody = requestBody.slice(0, MAX_REQUEST_BODY_BYTES);
     }
     if (!includeBodies) return entry;
+    // Decide from the declared length where there is one, so an oversized
+    // body is never read into memory just to be discarded.
+    const declared = Number(response.headers()['content-length']);
+    if (Number.isFinite(declared) && declared > maxBodyBytes) {
+      entry.sizeBytes = declared;
+      entry.truncated = true;
+      return entry;
+    }
+    if (bodyBytes >= MAX_TOTAL_BODY_BYTES) {
+      entry.truncated = true;
+      return entry;
+    }
     try {
       const body = await response.body();
       entry.sizeBytes = body.length;
+      bodyBytes += Math.min(body.length, maxBodyBytes);
       if (body.length > maxBodyBytes) {
         entry.truncated = true;
         if (isText(contentType) || isJson(contentType)) {
@@ -359,7 +396,9 @@ export function startNetworkCapture(
   page.on('response', (response) => {
     const request = response.request();
     if (!resourceTypes.has(request.resourceType())) return;
-    if (urlRegex && !urlRegex.test(response.url())) return;
+    if (options.urlPattern && !urlMatchesPattern(response.url(), options.urlPattern)) {
+      return;
+    }
     total++;
     if (pending.length >= maxRequests) return;
     const startedAtMs = Date.now() - startedAt;

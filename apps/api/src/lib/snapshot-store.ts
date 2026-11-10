@@ -19,6 +19,9 @@ import { getRedisConnection } from "../services/queue-service";
  * matches the newest snapshot only moves lastScrapeAt forward.
  */
 
+// Larger pages are not stored: history would let one caller fill Redis.
+const SNAPSHOT_MAX_BYTES = 5 * 1024 * 1024;
+
 const gzipAsync = promisify(gzip);
 const gunzipAsync = promisify(gunzip);
 
@@ -161,6 +164,9 @@ export async function recordSnapshot(
   scope: SnapshotScope,
   params: { markdown: string; statusCode: number | null; capturedAt?: Date },
 ): Promise<{ snapshot: SnapshotSummary; created: boolean }> {
+  if (Buffer.byteLength(params.markdown, "utf8") > SNAPSHOT_MAX_BYTES) {
+    throw new Error("Page is too large to store as a snapshot");
+  }
   const redis = getRedisConnection();
   const capturedAt = params.capturedAt ?? new Date();
   const contentHash = contentFingerprint(params.markdown);

@@ -21,10 +21,26 @@ type StructuredMarkdownDiff = {
   }>;
 };
 
+// The diff runs synchronously, and its cost grows with the square of the
+// number of differing lines: two unrelated 20k-line documents take over a
+// minute of CPU. These bounds make it give up instead, so one request cannot
+// stall the process.
+const DIFF_MAX_INPUT_BYTES = 2 * 1024 * 1024;
+const DIFF_MAX_EDIT_LENGTH = 10_000;
+const DIFF_TIMEOUT_MS = 2_000;
+
+/**
+ * A unified diff of two markdown documents. Returns undefined when they do
+ * not differ, and also when the diff is too large to compute within bounds.
+ */
 export function createMarkdownChangeDiff(
   previousMarkdown: string,
   currentMarkdown: string,
 ): { text: string; json: StructuredMarkdownDiff } | undefined {
+  if (previousMarkdown.length + currentMarkdown.length > DIFF_MAX_INPUT_BYTES) {
+    return undefined;
+  }
+
   const text = createTwoFilesPatch(
     "previous.md",
     "current.md",
@@ -32,8 +48,14 @@ export function createMarkdownChangeDiff(
     currentMarkdown,
     "",
     "",
-    { context: 3 },
+    {
+      context: 3,
+      maxEditLength: DIFF_MAX_EDIT_LENGTH,
+      timeout: DIFF_TIMEOUT_MS,
+    },
   );
+  // Undefined when a bound above was hit.
+  if (text === undefined) return undefined;
 
   const structured = parseDiff(text);
   const hasChanges = structured.some(file =>

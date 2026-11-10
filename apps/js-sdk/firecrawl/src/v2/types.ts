@@ -75,7 +75,7 @@ export interface NetworkFormat {
     | "eventsource"
     | "other"
   )[];
-  /** Only record requests whose URL matches this regular expression. */
+  /** Only record requests whose URL contains this text; `*` is a wildcard. */
   urlPattern?: string;
   includeBodies?: boolean;
   maxRequests?: number;

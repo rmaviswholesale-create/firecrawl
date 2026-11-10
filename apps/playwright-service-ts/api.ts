@@ -20,11 +20,11 @@ import {
   NetworkCaptureOptions,
   NetworkCaptureResult,
   ScreenshotOptions,
-  compileUrlPattern,
   runActions,
   startNetworkCapture,
   takeScreenshot,
   validateActions,
+  validateUrlPattern,
 } from './helpers/interact';
 import { STEALTH_INIT_SCRIPT, chromeUserAgent } from './helpers/stealth';
 
@@ -126,6 +126,24 @@ let stealthProxyPort: number | null = null;
 type ContextSecurityState = {
   blockedNavigationRequestUrl: string | null;
 };
+// A page can keep a scrape from ever returning: an endless loop in its own
+// script, an action that never settles, or a caller-supplied timeout of hours.
+// Past this deadline the request's browser context is closed, which ends the
+// renderer and frees the page slot.
+const MAX_SCRAPE_TIMEOUT_MS = Math.max(
+  1000,
+  Number.parseInt(process.env.MAX_SCRAPE_TIMEOUT_MS ?? '300000', 10) || 300000,
+);
+const HARD_DEADLINE_MARGIN_MS = 5000;
+const CONTEXT_CLOSE_TIMEOUT_MS = 5000;
+
+class ScrapeDeadlineError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = 'ScrapeDeadlineError';
+  }
+}
+
 class Semaphore {
   private permits: number;
   private queue: (() => void)[] = [];
@@ -231,6 +249,8 @@ const initializeBrowser = async () => {
       '--no-first-run',
       '--no-zygote',
       '--disable-gpu',
+      // WebRTC would otherwise send UDP around the SSRF proxy.
+      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
     ],
   });
 };
@@ -465,7 +485,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
   const {
     url,
     wait_after_load = 0,
-    timeout = 15000,
+    timeout: requestedTimeout = 15000,
     headers,
     check_selector,
     skip_tls_verification = false,
@@ -476,6 +496,11 @@ app.post('/scrape', async (req: Request, res: Response) => {
     stealth = false,
     location,
   }: UrlModel = req.body;
+
+  const timeout = Math.min(
+    Math.max(Number(requestedTimeout) || 15000, 1000),
+    MAX_SCRAPE_TIMEOUT_MS,
+  );
 
   console.log(`================= Scrape Request =================`);
   console.log(`URL: ${url}`);
@@ -499,9 +524,9 @@ app.post('/scrape', async (req: Request, res: Response) => {
     return res.status(400).json({ error: actionsProblem });
   }
 
-  const urlPattern = compileUrlPattern(capture_network?.urlPattern);
-  if (urlPattern.error) {
-    return res.status(400).json({ error: urlPattern.error });
+  const urlPatternProblem = validateUrlPattern(capture_network?.urlPattern);
+  if (urlPatternProblem) {
+    return res.status(400).json({ error: urlPatternProblem });
   }
 
   try {
@@ -532,6 +557,8 @@ app.post('/scrape', async (req: Request, res: Response) => {
   let requestContext: BrowserContext | null = null;
   let securityState: ContextSecurityState | null = null;
   let page: Page | null = null;
+  let deadlineTimer: NodeJS.Timeout | undefined;
+  let abandoned = false;
 
   try {
     // Extract user-agent from request headers (case-insensitive) so it can
@@ -555,7 +582,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
     page = await requestContext.newPage();
 
     const networkCapture = capture_network
-      ? startNetworkCapture(page, capture_network, urlPattern.regex)
+      ? startNetworkCapture(page, capture_network)
       : undefined;
 
     if (headers) {
@@ -628,18 +655,38 @@ app.post('/scrape', async (req: Request, res: Response) => {
       }
     }
 
-    const result = await scrapePage(
-      page,
-      url,
-      'load',
-      wait_after_load,
-      timeout,
-      check_selector,
-      securityState,
-      { actions, screenshot },
-    );
-    const network: NetworkCaptureResult | undefined =
-      await networkCapture?.collect();
+    const work = (async () => {
+      const scraped = await scrapePage(
+        page!,
+        url,
+        'load',
+        wait_after_load,
+        timeout,
+        check_selector,
+        securityState!,
+        { actions, screenshot },
+      );
+      const captured: NetworkCaptureResult | undefined =
+        await networkCapture?.collect();
+      return { scraped, captured };
+    })();
+    // The loser of the race keeps running until the context closes below;
+    // its rejection then must not surface as an unhandled one.
+    work.catch(() => {});
+    const { scraped: result, captured: network } = await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        deadlineTimer = setTimeout(
+          () => reject(new ScrapeDeadlineError('Scrape exceeded its deadline')),
+          timeout + HARD_DEADLINE_MARGIN_MS,
+        );
+        res.on('close', () => {
+          if (!res.writableEnded) {
+            reject(new ScrapeDeadlineError('Client closed the request'));
+          }
+        });
+      }),
+    ]);
     const pageError =
       result.status !== 200 ? getError(result.status) : undefined;
 
@@ -670,6 +717,14 @@ app.post('/scrape', async (req: Request, res: Response) => {
         pageError: error.message,
       });
     }
+    if (error instanceof ScrapeDeadlineError) {
+      abandoned = true;
+      console.warn(`${error.message}: ${url}`);
+      if (!res.writableEnded && !res.destroyed) {
+        res.status(504).json({ error: error.message });
+      }
+      return;
+    }
     if (error instanceof ActionFailedError) {
       console.warn(error.message);
       return res.json({
@@ -683,8 +738,17 @@ app.post('/scrape', async (req: Request, res: Response) => {
       .status(500)
       .json({ error: 'An error occurred while fetching the page.' });
   } finally {
-    if (page) await page.close();
-    if (requestContext) await requestContext.close();
+    clearTimeout(deadlineTimer);
+    // Closing the context ends its pages. A page stuck in a script cannot
+    // answer its own close, so an abandoned scrape skips that and the context
+    // close is bounded either way.
+    if (page && !abandoned) await page.close().catch(() => {});
+    if (requestContext) {
+      await Promise.race([
+        requestContext.close().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, CONTEXT_CLOSE_TIMEOUT_MS)),
+      ]);
+    }
     pageSemaphore.release();
   }
 });

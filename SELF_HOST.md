@@ -95,6 +95,9 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
 ```
 
 An action that cannot complete fails the scrape with `SCRAPE_ACTION_ERROR`.
+A scrape may include at most 10 screenshot or PDF steps. A page or script
+that never returns is cut off shortly after the request's `timeout`, capped by
+`MAX_SCRAPE_TIMEOUT_MS` on the Playwright service (default `300000`).
 Without a Playwright service, actions are rejected and screenshots are
 unavailable.
 
@@ -138,7 +141,7 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
 | Option | Default | Effect |
 | --- | --- | --- |
 | `resourceTypes` | `["xhr", "fetch"]` | Request kinds to record. |
-| `urlPattern` | unset | Regular expression a request URL must match. |
+| `urlPattern` | unset | Text a request URL must contain; `*` matches any run of characters. Not a regular expression. |
 | `includeBodies` | `true` | Include response bodies. |
 | `maxRequests` | `50` | Requests kept; `network.truncated` reports overflow. |
 | `maxBodyBytes` | `262144` | Larger bodies are cut and marked `truncated`. |
@@ -218,6 +221,12 @@ With the default `maxAge`, turning the cache on means a repeat scrape can
 return a copy up to two days old unless the request sets `maxAge`. The v1 API
 applies its own default of four hours.
 
+### Checking a deployment
+
+[`examples/self-host-smoke/smoke.py`](./examples/self-host-smoke/smoke.py)
+exercises every feature in this section against a running stack and exits
+non-zero on any failure. Its docstring lists what the stack needs.
+
 ## API keys
 
 Set `SELF_HOSTED_API_KEYS` to a comma-separated list of keys. Every request
@@ -230,11 +239,18 @@ curl -s localhost:3002/v2/scrape -H 'Authorization: Bearer 3f9c...e1' \
   -H 'Content-Type: application/json' -d '{"url": "https://example.com"}'
 ```
 
-All keys share one team: they see the same snapshots and cache, and there
-are no per-key rate limits or credits. To rotate, add the new key, move
+All keys share one team: every key can list, read and cancel every other
+key's crawls and read its snapshots and cached pages, and there are no
+per-key rate limits or credits. Give keys only to callers you would trust
+with each other's data. To rotate, add the new key, move
 callers over, then remove the old one and restart the API. The admin routes
 below are separate and use `BULL_AUTH_KEY`. Keys travel in clear text unless
 TLS terminates in front of the API.
+
+`ALLOW_LOCAL_WEBHOOKS=true` does more than its name says: it also lets
+scrapes reach private addresses, so any key holder could scrape
+`http://redis:6379` or a cloud metadata endpoint through your deployment.
+Leave it unset on anything exposed beyond a trusted network.
 
 ## Admin routes
 
