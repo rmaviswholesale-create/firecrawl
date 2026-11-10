@@ -519,6 +519,8 @@ class Document(BaseModel):
     highlights: Optional[str] = None
     warning: Optional[str] = None
     change_tracking: Optional[Dict[str, Any]] = None
+    network: Optional[Dict[str, Any]] = None
+    focus: Optional[Dict[str, Any]] = None
     branding: Optional[BrandingProfile] = None
     product: Optional[ProductProfile] = None
     menu: Optional[MenuProfile] = None
@@ -671,6 +673,7 @@ FormatString = Literal[
     "screenshot",
     "summary",
     "changeTracking",
+    "network",
     "json",
     "attributes",
     "branding",
@@ -716,6 +719,42 @@ class ChangeTrackingFormat(Format):
     schema: Optional[Dict[str, Any]] = None
     prompt: Optional[str] = None
     tag: Optional[str] = None
+    # Compare against the page as it was at this point instead of the previous
+    # scrape: an ISO 8601 timestamp, or an age such as "30m", "24h", "7d", "2w".
+    # Self-hosted snapshot store only.
+    since: Optional[str] = None
+
+
+class NetworkFormat(BaseModel):
+    """Capture the API calls a page makes (self-hosted Playwright engine)."""
+
+    type: Literal["network"] = "network"
+    resource_types: Optional[
+        List[
+            Literal[
+                "xhr",
+                "fetch",
+                "document",
+                "script",
+                "stylesheet",
+                "websocket",
+                "eventsource",
+                "other",
+            ]
+        ]
+    ] = None
+    url_pattern: Optional[str] = None
+    include_bodies: Optional[bool] = None
+    max_requests: Optional[int] = None
+    max_body_bytes: Optional[int] = None
+
+
+class FocusFormat(BaseModel):
+    """The parts of the page that match a query, fitted to a token budget."""
+
+    type: Literal["focus"] = "focus"
+    query: str
+    max_tokens: Optional[int] = None
 
 
 class ScreenshotFormat(BaseModel):
@@ -769,6 +808,8 @@ FormatOption = Union[
     JsonFormat,
     ChangeTrackingFormat,
     ScreenshotFormat,
+    NetworkFormat,
+    FocusFormat,
     AttributesFormat,
     QuestionFormat,
     HighlightsFormat,

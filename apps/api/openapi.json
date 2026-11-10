@@ -6896,6 +6896,374 @@
           }
         }
       }
+    },
+    "/snapshots": {
+      "get": {
+        "summary": "List the saved versions of a page",
+        "description": "Self-hosted only: available when the local snapshot store is enabled.",
+        "operationId": "listSnapshots",
+        "tags": ["Scraping"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "description": "The page URL.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "The change tracking tag.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum snapshots to return.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "snapshots": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Snapshot"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/snapshots/diff": {
+      "get": {
+        "summary": "Diff two saved versions of a page",
+        "description": "Self-hosted only: available when the local snapshot store is enabled.",
+        "operationId": "diffSnapshots",
+        "tags": ["Scraping"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Snapshot ID to compare from.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "Snapshot ID to compare to.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "changeStatus": {
+                      "type": "string",
+                      "enum": ["same", "changed"]
+                    },
+                    "from": {
+                      "$ref": "#/components/schemas/Snapshot"
+                    },
+                    "to": {
+                      "$ref": "#/components/schemas/Snapshot"
+                    },
+                    "diff": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "json": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/snapshots/{snapshotId}": {
+      "get": {
+        "summary": "Get a saved version of a page",
+        "description": "Self-hosted only: available when the local snapshot store is enabled.",
+        "operationId": "getSnapshot",
+        "tags": ["Scraping"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "snapshotId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "snapshot": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Snapshot"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "markdown": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8606,6 +8974,10 @@
                   "nullable": true,
                   "default": null,
                   "description": "Tag to use for change tracking. Tags can separate change tracking history into separate \"branches\", where change tracking with a specific tagwill only compare to scrapes made in the same tag. If not provided, the default tag (null) will be used."
+                },
+                "since": {
+                  "type": "string",
+                  "description": "Self-hosted snapshot store only. Compare against the page as it was at this point instead of the previous scrape: an ISO 8601 timestamp, or an age such as `30m`, `24h`, `7d` or `2w`. If history starts later, the oldest snapshot is used."
                 }
               },
               "required": ["type"]
@@ -8697,6 +9069,82 @@
                   "type": "string",
                   "maxLength": 10000,
                   "description": "The text-selection query to run against the page. Maximum 10,000 characters."
+                }
+              },
+              "required": ["type", "query"]
+            },
+            {
+              "type": "object",
+              "title": "Network",
+              "description": "Self-hosted Playwright engine only. Returns the API calls the page makes while it loads and while actions run.",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["network"]
+                },
+                "resourceTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "xhr",
+                      "fetch",
+                      "document",
+                      "script",
+                      "stylesheet",
+                      "websocket",
+                      "eventsource",
+                      "other"
+                    ]
+                  },
+                  "default": ["xhr", "fetch"],
+                  "description": "Request kinds to record."
+                },
+                "urlPattern": {
+                  "type": "string",
+                  "description": "Only record requests whose URL matches this regular expression."
+                },
+                "includeBodies": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Include response bodies. JSON bodies are returned parsed."
+                },
+                "maxRequests": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "default": 50,
+                  "description": "Maximum number of requests to return."
+                },
+                "maxBodyBytes": {
+                  "type": "integer",
+                  "minimum": 1024,
+                  "maximum": 5242880,
+                  "default": 262144,
+                  "description": "Bodies larger than this are cut and marked `truncated`."
+                }
+              },
+              "required": ["type"]
+            },
+            {
+              "type": "object",
+              "title": "Focus",
+              "description": "Returns the parts of the page that match a query, within a token budget. Ranked lexically (BM25) with no model call.",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["focus"]
+                },
+                "query": {
+                  "type": "string",
+                  "description": "What to look for on the page."
+                },
+                "maxTokens": {
+                  "type": "integer",
+                  "minimum": 50,
+                  "maximum": 200000,
+                  "default": 2000,
+                  "description": "Approximate token budget for the returned markdown."
                 }
               },
               "required": ["type", "query"]
@@ -9846,6 +10294,24 @@
                     "type": "object",
                     "nullable": true,
                     "description": "JSON comparison results when using 'json' mode. Only present when the mode is set to 'json'. This will emit a list of all the keys and their values from the `previous` and `current` scrapes based on the type defined in the `schema`. Example [here](/features/change-tracking)"
+                  },
+                  "snapshotId": {
+                    "type": "string",
+                    "description": "Self-hosted snapshot store only. The snapshot this scrape was saved as."
+                  },
+                  "comparedTo": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Self-hosted snapshot store only. The snapshot this scrape was compared to.",
+                    "properties": {
+                      "snapshotId": {
+                        "type": "string"
+                      },
+                      "capturedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
                   }
                 }
               },
@@ -10439,6 +10905,97 @@
                 "description": "Tool contracts matched to the scraped page's domain. Present only when `domainTools` is `true` on the request. Requires Alexandria access and no zero data retention (403 otherwise); free.",
                 "items": {
                   "$ref": "#/components/schemas/DiscoveredTool"
+                }
+              },
+              "network": {
+                "type": "object",
+                "nullable": true,
+                "description": "API calls captured during the scrape if `network` is in `formats`.",
+                "properties": {
+                  "requests": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "method": {
+                          "type": "string"
+                        },
+                        "resourceType": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "integer"
+                        },
+                        "contentType": {
+                          "type": "string"
+                        },
+                        "requestBody": {
+                          "type": "string"
+                        },
+                        "json": {
+                          "description": "Parsed response body, when it is JSON and fits `maxBodyBytes`."
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Response body, when it is text but not JSON."
+                        },
+                        "sizeBytes": {
+                          "type": "integer"
+                        },
+                        "truncated": {
+                          "type": "boolean"
+                        },
+                        "startedAtMs": {
+                          "type": "integer",
+                          "description": "Milliseconds since capture began."
+                        }
+                      }
+                    }
+                  },
+                  "total": {
+                    "type": "integer",
+                    "description": "Matching requests seen, including any past `maxRequests`."
+                  },
+                  "truncated": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "focus": {
+                "type": "object",
+                "nullable": true,
+                "description": "Query-focused markdown if `focus` is in `formats`.",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "markdown": {
+                    "type": "string"
+                  },
+                  "estimatedTokens": {
+                    "type": "integer"
+                  },
+                  "sourceEstimatedTokens": {
+                    "type": "integer"
+                  },
+                  "sections": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "heading": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "score": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -12583,6 +13140,36 @@
                 }
               }
             }
+          }
+        }
+      },
+      "Snapshot": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "integer",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer"
           }
         }
       }

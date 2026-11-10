@@ -36,6 +36,11 @@ import {
   getPDFRefresh,
 } from "../../../controllers/v2/types";
 import type { NetworkCapture } from "../../../controllers/v2/types";
+import {
+  getLocalCache,
+  isLocalCacheable,
+  setLocalCache,
+} from "../../../lib/local-cache";
 import type { PdfMetadata, PdfPageBlocks } from "./pdf/types";
 import { BrandingProfile } from "../../../types/branding";
 import {
@@ -434,12 +439,12 @@ const engineOptions: {
       audio: false,
       video: false,
       atsv: false,
-      location: false,
+      location: true,
       mobile: true,
       skipTlsVerification: true,
       useFastMode: false,
-      stealthProxy: false,
-      branding: false,
+      stealthProxy: true,
+      branding: true,
       disableAdblock: false,
       network: true,
     },
@@ -1122,7 +1127,7 @@ export async function buildFallbackList(meta: Meta): Promise<
         );
       }
       throw new BrandingNotSupportedError(
-        "Branding extraction requires Chrome CDP (fire-engine).",
+        "Branding extraction requires a browser engine: the self-hosted Playwright service or Chrome CDP (fire-engine).",
       );
     }
   }
@@ -1143,7 +1148,10 @@ export async function scrapeURLWithEngine(
   const featureFlags = new Set(meta.featureFlags);
   if (
     engineOptions[engine].features.stealthProxy &&
-    !engine.startsWith("index") // don't force stealth proxy for index
+    !engine.startsWith("index") && // don't force stealth proxy for index
+    // playwright is one engine for both modes: it applies stealth only when
+    // the request asked for it.
+    engine !== "playwright"
   ) {
     featureFlags.add("stealthProxy");
   }
@@ -1154,8 +1162,60 @@ export async function scrapeURLWithEngine(
     featureFlags,
   };
 
-  return await fn(_meta);
+  if (!LOCAL_CACHE_ENGINES.has(engine)) {
+    return await fn(_meta);
+  }
+
+  const cacheRequest = {
+    url: meta.rewrittenUrl ?? meta.url,
+    options: meta.options,
+    teamId: meta.internalOptions.teamId,
+    zeroDataRetention: meta.internalOptions.zeroDataRetention,
+  };
+  if (!isLocalCacheable(cacheRequest)) {
+    return await fn(_meta);
+  }
+
+  // The cache is an optimization: a Redis failure must not fail the scrape.
+  try {
+    const cached = await getLocalCache(cacheRequest, engine);
+    if (cached) {
+      logger.info("Serving page from the local cache", {
+        createdAt: cached.createdAt,
+      });
+      return {
+        url: cached.url,
+        html: cached.html,
+        statusCode: cached.statusCode,
+        contentType: cached.contentType,
+        proxyUsed: cached.proxyUsed,
+        cacheInfo: { created_at: cached.createdAt },
+      };
+    }
+  } catch (error) {
+    logger.warn("Local cache read failed", { error });
+  }
+
+  const result = await fn(_meta);
+  try {
+    await setLocalCache(cacheRequest, engine, {
+      url: result.url,
+      html: result.html,
+      statusCode: result.statusCode,
+      contentType: result.contentType,
+      proxyUsed: result.proxyUsed,
+    });
+  } catch (error) {
+    logger.warn("Local cache write failed", { error });
+  }
+  return result;
 }
+
+// Engines that load a page live and whose result the local cache can replay.
+const LOCAL_CACHE_ENGINES: ReadonlySet<Engine> = new Set([
+  "playwright",
+  "fetch",
+]);
 
 export function getEngineMaxReasonableTime(meta: Meta, engine: Engine): number {
   const mrt = engineMRTs[engine];

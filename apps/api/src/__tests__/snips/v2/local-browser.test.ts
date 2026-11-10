@@ -151,6 +151,61 @@ describe("Self-hosted browser engine", () => {
     scrapeTimeout,
   );
 
+  itIf(LOCAL_BROWSER)(
+    "presents the locale and timezone of the requested country",
+    async () => {
+      const doc = await scrape(
+        {
+          url: INTERACT_URL,
+          formats: ["markdown"],
+          location: { country: "DE" },
+        },
+        identity,
+      );
+
+      expect(doc.markdown).toContain("Language: de-DE");
+      expect(doc.markdown).toContain("Timezone: Europe/Berlin");
+    },
+    scrapeTimeout,
+  );
+
+  itIf(LOCAL_BROWSER)(
+    "hides automation markers for a stealth scrape and only then",
+    async () => {
+      const stealth = await scrape(
+        { url: INTERACT_URL, formats: ["markdown"], proxy: "stealth" },
+        identity,
+      );
+      expect(stealth.markdown).toContain("Webdriver: false");
+      expect(stealth.markdown).toContain("Headless: false");
+      expect(stealth.metadata.proxyUsed).toBe("stealth");
+
+      const basic = await scrape(
+        { url: INTERACT_URL, formats: ["markdown"], proxy: "basic" },
+        identity,
+      );
+      expect(basic.markdown).toContain("Webdriver: true");
+      expect(basic.metadata.proxyUsed).toBe("basic");
+    },
+    scrapeTimeout,
+  );
+
+  itIf(LOCAL_BROWSER)(
+    "extracts branding without leaking the scan into action results",
+    async () => {
+      const doc = await scrape(
+        { url: TEST_SUITE_WEBSITE, formats: ["branding"] },
+        identity,
+      );
+
+      expect(doc.branding).toBeDefined();
+      expect(doc.branding?.colors).toBeDefined();
+      expect(doc.branding?.fonts?.length ?? 0).toBeGreaterThan(0);
+      expect(doc.actions?.javascriptReturns ?? []).toEqual([]);
+    },
+    scrapeTimeout,
+  );
+
   itIf(LOCAL_FETCH_ONLY)(
     "warns when no browser engine can capture the network",
     async () => {

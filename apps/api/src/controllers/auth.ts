@@ -3,6 +3,11 @@ import { isValidUuid } from "../lib/owner-id";
 import { config } from "../config";
 import { logger } from "../lib/logger";
 import { timingSafeSecretEqual } from "../lib/secret-compare";
+import {
+  bearerToken,
+  isSelfHostedApiKey,
+  selfHostedAuthEnabled,
+} from "../lib/self-hosted-auth";
 import { parseApi } from "../lib/parseApi";
 import { withAuth } from "../lib/withAuth";
 import { getAgentSponsorStatus } from "../services/agent-sponsor";
@@ -847,6 +852,17 @@ export async function authenticateUser(
   mode: RateLimiterMode,
   options?: AuthenticateOptions,
 ): Promise<AuthResponse> {
+  if (
+    selfHostedAuthEnabled &&
+    !isSelfHostedApiKey(bearerToken(req.headers?.authorization))
+  ) {
+    return {
+      success: false,
+      error: "Unauthorized: Invalid token",
+      status: 401,
+    };
+  }
+
   const bypassChunk = mockACUC();
   bypassChunk.is_extract =
     mode === RateLimiterMode.Extract ||

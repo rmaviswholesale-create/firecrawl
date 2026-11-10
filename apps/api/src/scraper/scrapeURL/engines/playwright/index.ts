@@ -6,6 +6,11 @@ import { robustFetch } from "../../lib/fetch";
 import { getInnerJson } from "@mendable/firecrawl-rs";
 import { hasFormatOfType } from "../../../../lib/format-utils";
 import { ActionError } from "../../error";
+import { getBrandingScript } from "../fire-engine/brandingScript";
+import { browserLocaleFor } from "./locale";
+
+// Give the page time to settle before the branding scan reads its styles.
+const BRANDING_DEFAULT_WAIT_MS = 2000;
 
 const networkEntrySchema = z.object({
   url: z.string(),
@@ -26,7 +31,22 @@ export async function scrapeURLWithPlaywright(
 ): Promise<EngineScrapeResult> {
   const screenshotFormat = hasFormatOfType(meta.options.formats, "screenshot");
   const networkFormat = hasFormatOfType(meta.options.formats, "network");
-  const actions = meta.options.actions ?? [];
+  const brandingFormat = hasFormatOfType(meta.options.formats, "branding");
+  const userActions = meta.options.actions ?? [];
+  // The branding scan runs in the page as a last action; its return is read
+  // and removed by the branding transformer.
+  const actions = brandingFormat
+    ? [
+        ...userActions,
+        { type: "executeJavascript" as const, script: getBrandingScript() },
+      ]
+    : userActions;
+  const waitAfterLoad =
+    brandingFormat && !meta.options.waitFor
+      ? BRANDING_DEFAULT_WAIT_MS
+      : meta.options.waitFor;
+  const stealth = meta.featureFlags.has("stealthProxy");
+  const locale = browserLocaleFor(meta.options.location);
 
   const response = await robustFetch({
     url: config.PLAYWRIGHT_MICROSERVICE_URL!,
@@ -35,7 +55,7 @@ export async function scrapeURLWithPlaywright(
     },
     body: {
       url: meta.rewrittenUrl ?? meta.url,
-      wait_after_load: meta.options.waitFor,
+      wait_after_load: waitAfterLoad,
       timeout: meta.abort.scrapeTimeout(),
       headers: meta.options.headers,
       skip_tls_verification: meta.options.skipTlsVerification,
@@ -50,6 +70,8 @@ export async function scrapeURLWithPlaywright(
           }
         : {}),
       ...(meta.options.mobile ? { mobile: true } : {}),
+      ...(stealth ? { stealth: true } : {}),
+      ...(locale ? { location: locale } : {}),
       ...(networkFormat
         ? {
             capture_network: {
@@ -74,6 +96,7 @@ export async function scrapeURLWithPlaywright(
       // Optional: older playwright-service builds ignore actions, screenshots
       // and network capture, and send none of these back.
       actionError: z.string().optional(),
+      stealth: z.boolean().optional(),
       screenshot: z.string().optional(),
       actions: z
         .object({
@@ -107,6 +130,7 @@ export async function scrapeURLWithPlaywright(
     actions.length > 0 && !response.actions ? "actions" : null,
     screenshotFormat && !response.screenshot ? "screenshot" : null,
     networkFormat && !response.network ? "network capture" : null,
+    stealth && !response.stealth ? "stealth mode" : null,
   ].filter((x): x is string => x !== null);
   const warning =
     skipped.length > 0
@@ -131,7 +155,7 @@ export async function scrapeURLWithPlaywright(
     network: response.network,
     warning,
 
-    proxyUsed: "basic",
+    proxyUsed: response.stealth ? "stealth" : "basic",
   };
 }
 
@@ -151,5 +175,8 @@ export function playwrightMaxReasonableTime(meta: Meta): number {
       action.type === "wait" ? total + (action.milliseconds ?? 1000) : total,
     0,
   );
-  return (meta.options.waitFor ?? 0) + actionWait + 30000;
+  const brandingWait = hasFormatOfType(meta.options.formats, "branding")
+    ? BRANDING_DEFAULT_WAIT_MS
+    : 0;
+  return (meta.options.waitFor ?? 0) + actionWait + brandingWait + 30000;
 }

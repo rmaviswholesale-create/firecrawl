@@ -6,6 +6,32 @@ from typing import Optional, Dict, Any, List
 from ..types import ScrapeOptions, ScrapeFormats
 
 
+# Formats whose options are plain fields: Python name -> API name.
+_OPTION_FORMAT_KEYS: Dict[str, Dict[str, str]] = {
+    "network": {
+        "resource_types": "resourceTypes",
+        "url_pattern": "urlPattern",
+        "include_bodies": "includeBodies",
+        "max_requests": "maxRequests",
+        "max_body_bytes": "maxBodyBytes",
+    },
+    "focus": {"max_tokens": "maxTokens"},
+}
+
+
+def _camel_option_format(fmt: Dict[str, Any], fmt_type: str) -> Dict[str, Any]:
+    """Rename a format dict's snake_case option keys to the API's names."""
+    keys = _OPTION_FORMAT_KEYS[fmt_type]
+    out = {keys.get(key, key): value for key, value in fmt.items()}
+    out["type"] = fmt_type
+    return out
+
+
+def _dump_option_format(fmt: Any) -> Dict[str, Any]:
+    """Serialize a typed option format (NetworkFormat, FocusFormat)."""
+    return _camel_option_format(fmt.model_dump(exclude_none=True), fmt.type)
+
+
 def _convert_format_string(format_str: str) -> str:
     """
     Convert format string from snake_case to camelCase.
@@ -647,6 +673,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                     if hasattr(vp, 'model_dump'):
                                         normalized['viewport'] = vp.model_dump(exclude_none=True)
                                     converted_formats.append(normalized)
+                                elif fmt_type in _OPTION_FORMAT_KEYS:
+                                    converted_formats.append(_camel_option_format(fmt, fmt_type))
                                 else:
                                     if 'type' in fmt:
                                         fmt['type'] = fmt_type or fmt['type']
@@ -664,6 +692,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                     data = fmt.model_dump(exclude_none=True)
                                     data['type'] = _convert_format_string(data.get('type', fmt.type))
                                     converted_formats.append(data)
+                                elif fmt.type in _OPTION_FORMAT_KEYS:
+                                    converted_formats.append(_dump_option_format(fmt))
                                 else:
                                     converted_formats.append(_convert_format_string(fmt.type))
                             else:
@@ -718,6 +748,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                 if hasattr(vp, 'model_dump'):
                                     normalized['viewport'] = vp.model_dump(exclude_none=True)
                                 converted_formats.append(normalized)
+                            elif fmt_type in _OPTION_FORMAT_KEYS:
+                                converted_formats.append(_camel_option_format(fmt, fmt_type))
                             else:
                                 if 'type' in fmt:
                                     fmt['type'] = fmt_type or fmt['type']
@@ -745,6 +777,8 @@ def prepare_scrape_options(options: Optional[ScrapeOptions]) -> Optional[Dict[st
                                 data = fmt.model_dump(exclude_none=True)
                                 data['type'] = _convert_format_string(data.get('type', fmt.type))
                                 converted_formats.append(data)
+                            elif fmt.type in _OPTION_FORMAT_KEYS:
+                                converted_formats.append(_dump_option_format(fmt))
                             else:
                                 converted_formats.append(_convert_format_string(fmt.type))
                         else:

@@ -1,3 +1,4 @@
+import { isLocalCacheable } from "../../lib/local-cache";
 import { Logger } from "winston";
 import { config } from "../../config";
 import {
@@ -1243,7 +1244,13 @@ async function scrapeURLLoop(meta: Meta): Promise<ScrapeUrlResponse> {
         proxyUsed: engineResult.proxyUsed ?? "basic",
         ...(fallbackList.find(x =>
           ["index", "index;documents"].includes(x.engine),
-        )
+        ) ||
+        isLocalCacheable({
+          url: meta.rewrittenUrl ?? meta.url,
+          options: meta.options,
+          teamId: meta.internalOptions.teamId,
+          zeroDataRetention: meta.internalOptions.zeroDataRetention,
+        })
           ? engineResult.cacheInfo
             ? {
                 cacheState: "hit",
