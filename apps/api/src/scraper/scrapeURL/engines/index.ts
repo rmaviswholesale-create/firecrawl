@@ -35,6 +35,7 @@ import {
   getPDFPageMarkers,
   getPDFRefresh,
 } from "../../../controllers/v2/types";
+import type { NetworkCapture } from "../../../controllers/v2/types";
 import type { PdfMetadata, PdfPageBlocks } from "./pdf/types";
 import { BrandingProfile } from "../../../types/branding";
 import {
@@ -123,6 +124,7 @@ const featureFlags = [
   "stealthProxy",
   "branding",
   "disableAdblock",
+  "network",
 ] as const;
 
 export type FeatureFlag = (typeof featureFlags)[number];
@@ -149,6 +151,9 @@ const featureFlagOptions: {
   stealthProxy: { priority: 20 },
   branding: { priority: 20 }, // Requires CDP executeJavascript
   disableAdblock: { priority: 10 },
+  // Low priority: engines that cannot observe requests still qualify, so the
+  // scrape succeeds with a warning instead of finding no engine at all.
+  network: { priority: 1 },
 } as const;
 
 export type EngineScrapeResult = {
@@ -193,6 +198,7 @@ export type EngineScrapeResult = {
   audioCookies?: BrowserCookie[];
 
   proxyUsed: "basic" | "stealth";
+  network?: NetworkCapture;
   timezone?: string;
   exchange?: ExchangeScrapeMetadata;
 };
@@ -274,6 +280,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: false,
       disableAdblock: false,
+      network: false,
     },
     quality: 2000,
   },
@@ -296,6 +303,7 @@ const engineOptions: {
       stealthProxy: true,
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: 1000, // index should always be tried first
   },
@@ -318,6 +326,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: true,
       disableAdblock: false,
+      network: false,
     },
     quality: 50,
   },
@@ -340,6 +349,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: true,
       disableAdblock: false,
+      network: false,
     },
     quality: 45,
   },
@@ -362,6 +372,7 @@ const engineOptions: {
       stealthProxy: true,
       branding: false,
       disableAdblock: false,
+      network: false,
     },
     quality: -1,
   },
@@ -384,6 +395,7 @@ const engineOptions: {
       stealthProxy: true,
       branding: true,
       disableAdblock: false,
+      network: false,
     },
     quality: -2,
   },
@@ -406,15 +418,16 @@ const engineOptions: {
       stealthProxy: true,
       branding: true,
       disableAdblock: false,
+      network: false,
     },
     quality: -5,
   },
   playwright: {
     features: {
-      actions: false,
+      actions: true,
       waitFor: true,
-      screenshot: false,
-      "screenshot@fullScreen": false,
+      screenshot: true,
+      "screenshot@fullScreen": true,
       pdf: false,
       document: false,
       image: false,
@@ -422,12 +435,13 @@ const engineOptions: {
       video: false,
       atsv: false,
       location: false,
-      mobile: false,
+      mobile: true,
       skipTlsVerification: true,
       useFastMode: false,
       stealthProxy: false,
       branding: false,
       disableAdblock: false,
+      network: true,
     },
     quality: 20,
   },
@@ -450,6 +464,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: false,
       disableAdblock: false,
+      network: false,
     },
     quality: 10,
   },
@@ -472,6 +487,7 @@ const engineOptions: {
       stealthProxy: true,
       branding: false,
       disableAdblock: false,
+      network: false,
     },
     quality: -15,
   },
@@ -494,6 +510,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: false,
       disableAdblock: false,
+      network: false,
     },
     quality: 5,
   },
@@ -520,6 +537,7 @@ const engineOptions: {
       stealthProxy: true, // kinda...
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: -20,
   },
@@ -542,6 +560,7 @@ const engineOptions: {
       stealthProxy: true, // kinda...
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: -20,
   },
@@ -564,6 +583,7 @@ const engineOptions: {
       stealthProxy: true, // kinda...
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: -20,
   },
@@ -586,6 +606,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: 500, // below index (1000) so cache is tried first, above fire-engine (50)
   },
@@ -608,6 +629,7 @@ const engineOptions: {
       stealthProxy: false,
       branding: false,
       disableAdblock: true,
+      network: false,
     },
     quality: 1500,
   },
@@ -629,6 +651,8 @@ export function shouldUseIndex(meta: Meta) {
     config.FIRECRAWL_INDEX_WRITE_ONLY !== true &&
     !hasFormatOfType(meta.options.formats, "changeTracking") &&
     !hasFormatOfType(meta.options.formats, "branding") &&
+    // Network capture observes a live page load; a cached copy has none.
+    !hasFormatOfType(meta.options.formats, "network") &&
     // The URL index does not yet persist physical-page or typed-block
     // capability metadata, and its markdown never carries page markers.
     !getPDFPageMarkdown(meta.options.parsers) &&

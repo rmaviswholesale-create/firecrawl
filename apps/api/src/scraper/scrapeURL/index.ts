@@ -321,6 +321,10 @@ function buildFeatureFlags(
     flags.add("branding");
   }
 
+  if (hasFormatOfType(options.formats, "network")) {
+    flags.add("network");
+  }
+
   if (hasFormatOfType(options.formats, "audio")) {
     flags.add("audio");
   }
@@ -878,7 +882,7 @@ async function scrapeURLLoop(meta: Meta): Promise<ScrapeUrlResponse> {
         fallbackList.every(engine => engine.unsupportedFeatures.has("actions"))
       ) {
         throw new ActionsNotSupportedError(
-          "Actions are not supported by any available engines. Actions require Fire Engine (fire-engine) to be enabled.",
+          "Actions are not supported by any available engines. Actions require a browser engine: the self-hosted Playwright service (PLAYWRIGHT_MICROSERVICE_URL) or Fire Engine.",
         );
       }
     }
@@ -1220,6 +1224,7 @@ async function scrapeURLLoop(meta: Meta): Promise<ScrapeUrlResponse> {
       rawBase64: engineResult.rawBase64,
       screenshot: engineResult.screenshot,
       actions: engineResult.actions,
+      network: engineResult.network,
       branding: engineResult.branding,
       metadata: {
         sourceURL: meta.internalOptions.unnormalizedSourceURL ?? meta.url,

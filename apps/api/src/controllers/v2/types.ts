@@ -1,4 +1,5 @@
 import type { AgentInteropStatus } from "../../lib/agent-interop";
+import { parseSinceToDate } from "../../lib/since";
 import type { ThirdPartyDataTermsRequiredError } from "../../lib/exchange";
 import { Request, Response } from "express";
 import { hasCategory } from "../../lib/search-query-builder";
@@ -416,6 +417,17 @@ const changeTrackingFormatWithOptions = z.strictObject({
     .superRefine(addStrictSchemaIssue),
   modes: z.enum(["json", "git-diff"]).array().prefault([]),
   tag: z.string().or(z.null()).prefault(null),
+  // Time travel: compare against the page as it was at this point instead of
+  // the previous scrape. An ISO 8601 timestamp, or an age such as "30m",
+  // "24h", "7d" or "2w". Needs the local snapshot store (self-hosted).
+  since: z
+    .string()
+    .max(64)
+    .optional()
+    .refine(val => val === undefined || parseSinceToDate(val) !== null, {
+      message:
+        'since must be an ISO 8601 timestamp or an age such as "30m", "24h", "7d" or "2w".',
+    }),
 });
 
 type ChangeTrackingFormatWithOptions = z.output<
@@ -435,6 +447,65 @@ const screenshotFormatWithOptions = z.object({
 });
 
 type ScreenshotFormatWithOptions = z.output<typeof screenshotFormatWithOptions>;
+
+const networkResourceTypes = [
+  "xhr",
+  "fetch",
+  "document",
+  "script",
+  "stylesheet",
+  "websocket",
+  "eventsource",
+  "other",
+] as const;
+
+// "Network X-ray": the API calls a page makes while it loads and while actions
+// run, with their response bodies. Needs a browser engine that can observe
+// requests (the self-hosted Playwright service).
+const networkFormatWithOptions = z.strictObject({
+  type: z.literal("network"),
+  resourceTypes: z
+    .enum(networkResourceTypes)
+    .array()
+    .min(1)
+    .prefault(["xhr", "fetch"]),
+  // Only record requests whose URL matches this regular expression.
+  urlPattern: z
+    .string()
+    .max(500)
+    .optional()
+    .refine(
+      val => {
+        if (val === undefined) return true;
+        try {
+          new RegExp(val);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "urlPattern must be a valid regular expression." },
+    ),
+  includeBodies: z.boolean().prefault(true),
+  maxRequests: z.int().min(1).max(200).prefault(50),
+  maxBodyBytes: z
+    .int()
+    .min(1024)
+    .max(5 * 1024 * 1024)
+    .prefault(256 * 1024),
+});
+
+type NetworkFormatWithOptions = z.output<typeof networkFormatWithOptions>;
+
+// "Focus": the parts of the page that answer a query, fitted to a token
+// budget. Ranked lexically (BM25), so it needs no model and costs nothing.
+const focusFormatWithOptions = z.strictObject({
+  type: z.literal("focus"),
+  query: z.string().min(1).max(2000),
+  maxTokens: z.int().min(50).max(200000).prefault(2000),
+});
+
+type FocusFormatWithOptions = z.output<typeof focusFormatWithOptions>;
 
 const attributesFormatWithOptions = z.strictObject({
   type: z.literal("attributes"),
@@ -498,6 +569,8 @@ export type FormatObject =
   | DeterministicJsonFormatWithOptions
   | ChangeTrackingFormatWithOptions
   | ScreenshotFormatWithOptions
+  | NetworkFormatWithOptions
+  | FocusFormatWithOptions
   | AttributesFormatWithOptions
   | QuestionFormatWithOptions
   | HighlightsFormatWithOptions
@@ -804,6 +877,8 @@ const scrapeOptionFields = z.strictObject({
           deterministicJsonFormatWithOptions,
           changeTrackingFormatWithOptions,
           screenshotFormatWithOptions,
+          networkFormatWithOptions,
+          focusFormatWithOptions,
           attributesFormatWithOptions,
           brandingFormatWithOptions,
           z.strictObject({ type: z.literal("product") }),
@@ -820,6 +895,12 @@ const scrapeOptionFields = z.strictObject({
     .refine(x => {
       return x.filter(f => f.type === "screenshot").length <= 1;
     }, "You may only specify one screenshot format")
+    .refine(x => {
+      return x.filter(f => f.type === "network").length <= 1;
+    }, "You may only specify one network format")
+    .refine(x => {
+      return x.filter(f => f.type === "focus").length <= 1;
+    }, "You may only specify one focus format")
     .refine(x => {
       const hasChangeTracking = x.find(f => f.type === "changeTracking");
       const hasMarkdown = x.find(f => f.type === "markdown");
@@ -1509,6 +1590,34 @@ export type DocumentProvider = {
   steps: { provider: string; status: string; creditsCost?: number }[];
 };
 
+type NetworkCaptureEntry = {
+  url: string;
+  method: string;
+  resourceType: string;
+  status: number;
+  contentType?: string;
+  requestBody?: string;
+  json?: unknown;
+  text?: string;
+  sizeBytes?: number;
+  truncated?: boolean;
+  startedAtMs: number;
+};
+
+export type NetworkCapture = {
+  requests: NetworkCaptureEntry[];
+  total: number;
+  truncated: boolean;
+};
+
+export type FocusResult = {
+  query: string;
+  markdown: string;
+  estimatedTokens: number;
+  sourceEstimatedTokens: number;
+  sections: { heading: string | null; score: number }[];
+};
+
 export type Document = {
   title?: string;
   description?: string;
@@ -1551,10 +1660,16 @@ export type Document = {
     }[];
     pdfs?: string[];
   };
+  network?: NetworkCapture;
+  focus?: FocusResult;
   changeTracking?: {
     previousScrapeAt: string | null;
     changeStatus: "new" | "same" | "changed" | "removed";
     visibility: "visible" | "hidden";
+    /** Local snapshot store only: the snapshot this scrape was saved as. */
+    snapshotId?: string;
+    /** Local snapshot store only: the snapshot this scrape was compared to. */
+    comparedTo?: { snapshotId: string; capturedAt: string } | null;
     diff?: {
       text: string;
       json: {

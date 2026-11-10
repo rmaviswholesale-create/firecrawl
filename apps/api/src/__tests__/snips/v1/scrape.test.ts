@@ -233,8 +233,10 @@ describe("Scrape tests", () => {
     scrapeTimeout,
   );
 
-  itIf(TEST_SELF_HOST && !HAS_FIRE_ENGINE)(
-    "rejects actions when fire-engine is not configured",
+  // The self-hosted Playwright engine runs actions; without it or fire-engine
+  // no engine can.
+  itIf(TEST_SELF_HOST && !HAS_FIRE_ENGINE && !HAS_PLAYWRIGHT)(
+    "rejects actions when no browser engine is configured",
     async () => {
       const raw = await scrapeRaw(
         {

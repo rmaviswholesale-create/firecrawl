@@ -18,6 +18,7 @@ import { performAgent } from "./agent";
 import { performAttributes } from "./performAttributes";
 
 import { deriveDiff } from "./diff";
+import { performFocus } from "./focus";
 import { fetchAudio } from "./audio";
 import { fetchProduct } from "./product";
 import { fetchMenu } from "./menu";
@@ -124,6 +125,7 @@ async function deriveMarkdownFromHTML(
     !hasQuestion &&
     !hasHighlights &&
     !hasQuery &&
+    !hasFormatOfType(meta.options.formats, "focus") &&
     !hasRedactPII &&
     !meta.options.checkPromptInjection &&
     !meta.options.onlyCleanContent
@@ -414,6 +416,18 @@ function coerceFieldsToFormats(meta: Meta, document: Document): Document {
     );
   }
 
+  if (!hasFormatOfType(meta.options.formats, "network")) {
+    delete document.network;
+  } else if (document.network === undefined) {
+    document.warning =
+      "Network capture needs a browser engine that can observe requests (the self-hosted Playwright service); none was available for this scrape." +
+      (document.warning ? " " + document.warning : "");
+  }
+
+  if (!hasFormatOfType(meta.options.formats, "focus")) {
+    delete document.focus;
+  }
+
   if (!hasLinks && document.links !== undefined) {
     meta.logger.warn(
       "Removed links from Document because it wasn't in formats -- this is wasteful and indicates a bug.",
@@ -638,6 +652,7 @@ const transformerStack: Transformer[] = [
   performSummary,
   performQuery,
   performAttributes,
+  performFocus,
   performAgent,
   removeBase64Images,
   deriveDiff,

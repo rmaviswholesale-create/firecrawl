@@ -70,6 +70,105 @@ security, availability, capacity, upgrades, data retention, and compliance.
 Treat the Kubernetes and Helm examples as versioned starting points, not as
 evidence that these production decisions have been made for you.
 
+## Self-hosted engine features
+
+These work on the bundled Playwright service and Redis, with no Fire-engine,
+Bigtable, GCS or model provider.
+
+### Actions, screenshots and mobile
+
+`actions`, the `screenshot` format and `mobile: true` run on the Playwright
+service. Screenshots and action PDFs come back inline as `data:` URLs.
+
+```bash
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com",
+  "formats": ["markdown", {"type": "screenshot", "fullPage": true}],
+  "actions": [
+    {"type": "click", "selector": "a"},
+    {"type": "wait", "milliseconds": 500},
+    {"type": "executeJavascript", "script": "document.title"}
+  ]
+}'
+```
+
+An action that cannot complete fails the scrape with `SCRAPE_ACTION_ERROR`.
+Without a Playwright service, actions are rejected and screenshots are
+unavailable.
+
+### Network capture (`network` format)
+
+Returns the API calls the page made while loading and while actions ran, with
+parsed JSON bodies, in `data.network.requests`.
+
+```bash
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com",
+  "formats": [{"type": "network", "urlPattern": "/api/"}],
+  "waitFor": 2000
+}'
+```
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `resourceTypes` | `["xhr", "fetch"]` | Request kinds to record. |
+| `urlPattern` | unset | Regular expression a request URL must match. |
+| `includeBodies` | `true` | Include response bodies. |
+| `maxRequests` | `50` | Requests kept; `network.truncated` reports overflow. |
+| `maxBodyBytes` | `262144` | Larger bodies are cut and marked `truncated`. |
+
+Captured bodies can hold whatever the page's own API returned, including
+session-specific data. Without a Playwright service the scrape still succeeds
+and carries a warning instead of `network`.
+
+### Change tracking and snapshots
+
+The `changeTracking` format stores page versions in Redis when
+`USE_DB_AUTHENTICATION` is off and Bigtable is not configured. Each distinct
+version of a page is a snapshot.
+
+`since` compares against the page as it was at a point in time instead of the
+previous scrape. It takes an ISO 8601 timestamp or an age: `30m`, `24h`, `7d`,
+`2w`. If history starts later than `since`, the oldest snapshot is used;
+`changeTracking.comparedTo` says which one.
+
+```bash
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com/pricing",
+  "formats": ["markdown", {"type": "changeTracking", "modes": ["git-diff"], "since": "7d"}]
+}'
+```
+
+| Route | Returns |
+| --- | --- |
+| `GET /v2/snapshots?url=<url>&tag=<tag>&limit=<n>` | Saved versions of a page, newest first. |
+| `GET /v2/snapshots/<id>` | One version with its markdown. |
+| `GET /v2/snapshots/diff?from=<id>&to=<id>` | Diff between two versions. |
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `SNAPSHOT_STORE_ENABLED` | on without DB auth and Bigtable | Forces the store on or off. |
+| `SNAPSHOT_HISTORY_LIMIT` | `30` | Versions kept per page and tag. |
+| `SNAPSHOT_TTL_DAYS` | `90` | Days a page's history survives without a new scrape; `0` keeps it. |
+
+History lives in Redis. The root Compose file gives Redis no volume, so
+snapshots are lost when the Redis container is replaced unless you add
+persistence.
+
+### Focused markdown (`focus` format)
+
+Returns the parts of the page that match a query, within a token budget, in
+`data.focus.markdown`. Ranking is lexical (BM25) and runs in the API, so it
+needs no model. It matches words, not meaning: a query that shares no terms
+with the page returns empty markdown and a warning.
+
+```bash
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com/docs",
+  "formats": [{"type": "focus", "query": "rate limits per API key", "maxTokens": 800}]
+}'
+```
+
 ## Admin routes
 
 The key-protected routes on the main API port, `/admin/ops/...` and

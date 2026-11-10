@@ -1,11 +1,28 @@
 import { changeTrackingGetLastScrape } from "../../../lib/change-tracking-store";
-import { Document } from "../../../controllers/v1/types";
+import { Document } from "../../../controllers/v2/types";
 import { Meta } from "../index";
 import { generateCompletions } from "./llmExtract";
 import { hasFormatOfType } from "../../../lib/format-utils";
 import { getJobFromGCS } from "../../../lib/gcs-jobs";
 import { createMarkdownChangeDiff } from "../../../lib/change-tracking-diff";
 import { UsOnlyUnavailableError } from "../error";
+import {
+  contentFingerprint,
+  getLastScrapeAt,
+  getLatestSnapshot,
+  getSnapshotAsOf,
+  recordSnapshot,
+  snapshotStoreEnabled,
+} from "../../../lib/snapshot-store";
+import { parseSinceToDate } from "../../../lib/since";
+
+type PreviousVersion = {
+  markdown: string;
+  /** Reported as previousScrapeAt. */
+  scrapedAt: string;
+  /** Set when the previous version came from the local snapshot store. */
+  snapshot?: { snapshotId: string; capturedAt: string };
+};
 
 async function extractDataWithSchema(
   content: string,
@@ -90,14 +107,70 @@ export async function deriveDiff(
       return document;
     }
 
-    const start = Date.now();
-    let last: Awaited<ReturnType<typeof changeTrackingGetLastScrape>>;
+    const url = document.metadata.sourceURL ?? meta.rewrittenUrl ?? meta.url;
+    const tag = changeTrackingFormat.tag ?? null;
+    const snapshotScope = snapshotStoreEnabled
+      ? { teamId: meta.internalOptions.teamId ?? "local", url, tag }
+      : null;
+
+    let previous: PreviousVersion | null = null;
     try {
-      last = await changeTrackingGetLastScrape({
-        team_id: meta.internalOptions.teamId!,
-        url: document.metadata.sourceURL ?? meta.rewrittenUrl ?? meta.url,
-        tag: changeTrackingFormat?.tag ?? null,
-      });
+      if (snapshotScope) {
+        const since = changeTrackingFormat.since
+          ? parseSinceToDate(changeTrackingFormat.since)
+          : null;
+        const snapshot = since
+          ? await getSnapshotAsOf(snapshotScope, since)
+          : await getLatestSnapshot(snapshotScope);
+        if (snapshot) {
+          previous = {
+            markdown: snapshot.markdown,
+            scrapedAt: since
+              ? snapshot.capturedAt
+              : ((await getLastScrapeAt(snapshotScope)) ?? snapshot.capturedAt),
+            snapshot: {
+              snapshotId: snapshot.id,
+              capturedAt: snapshot.capturedAt,
+            },
+          };
+        }
+      } else {
+        if (changeTrackingFormat.since) {
+          document.warning =
+            "changeTracking.since needs the local snapshot store and was ignored; compared against the previous scrape instead." +
+            (document.warning ? ` ${document.warning}` : "");
+        }
+        const start = Date.now();
+        const last = await changeTrackingGetLastScrape({
+          team_id: meta.internalOptions.teamId!,
+          url,
+          tag,
+        });
+        const end = Date.now();
+        if (end - start > 100) {
+          meta.logger.debug("Diffing took a while", {
+            time: end - start,
+            params: {
+              i_team_id: meta.internalOptions.teamId,
+              i_url: url,
+            },
+          });
+        }
+
+        const rawJob = last?.job_id ? await getJobFromGCS(last.job_id) : null;
+        const job: Document | null = rawJob?.[0] ?? null;
+
+        meta.logger.debug("Change tracking debugging", {
+          isDataPresent: !!last,
+          data: last,
+          isRawJobPresent: !!rawJob,
+          isJobPresent: !!job,
+        });
+
+        if (last && job) {
+          previous = { markdown: job.markdown!, scrapedAt: last.date_added };
+        }
+      }
     } catch (error) {
       meta.logger.error("Error fetching previous scrape", { error });
       document.warning =
@@ -105,37 +178,21 @@ export async function deriveDiff(
         (document.warning ? ` ${document.warning}` : "");
       return document;
     }
-    const end = Date.now();
-    if (end - start > 100) {
-      meta.logger.debug("Diffing took a while", {
-        time: end - start,
-        params: {
-          i_team_id: meta.internalOptions.teamId,
-          i_url: document.metadata.sourceURL ?? meta.rewrittenUrl ?? meta.url,
-        },
-      });
-    }
 
-    const rawJob = last?.job_id ? await getJobFromGCS(last.job_id) : null;
-    const job: Document | null = rawJob?.[0] ?? null;
-
-    meta.logger.debug("Change tracking debugging", {
-      isDataPresent: !!last,
-      data: last,
-      isRawJobPresent: !!rawJob,
-      isJobPresent: !!job,
-    });
-
-    if (last && job) {
-      const previousMarkdown = job.markdown!;
+    if (previous) {
+      const previousMarkdown = previous.markdown;
       const currentMarkdown = document.markdown!;
 
       const transformer = (x: string) =>
         [...x.replace(/\s+/g, "").replace(/\[iframe\]\(.+?\)/g, "")]
           .sort()
           .join("");
-      const isChanged =
-        transformer(previousMarkdown) !== transformer(currentMarkdown);
+      // The local store compares exact text (minus whitespace); the hosted
+      // comparison keeps its historical order-insensitive form.
+      const isChanged = previous.snapshot
+        ? contentFingerprint(previousMarkdown) !==
+          contentFingerprint(currentMarkdown)
+        : transformer(previousMarkdown) !== transformer(currentMarkdown);
       const changeStatus =
         document.metadata.statusCode === 404
           ? "removed"
@@ -144,11 +201,12 @@ export async function deriveDiff(
             : "same";
 
       document.changeTracking = {
-        previousScrapeAt: last.date_added,
+        previousScrapeAt: previous.scrapedAt,
         changeStatus,
         visibility: meta.internalOptions.urlInvisibleInCurrentCrawl
           ? "hidden"
           : "visible",
+        ...(previous.snapshot ? { comparedTo: previous.snapshot } : {}),
       };
 
       if (
@@ -238,7 +296,29 @@ export async function deriveDiff(
         visibility: meta.internalOptions.urlInvisibleInCurrentCrawl
           ? "hidden"
           : "visible",
+        ...(snapshotScope ? { comparedTo: null } : {}),
       };
+    }
+
+    // Save this scrape as the page's newest version. A removed page keeps its
+    // last real content, so the next successful scrape still diffs against it.
+    if (
+      snapshotScope &&
+      document.markdown !== undefined &&
+      document.metadata.statusCode !== 404
+    ) {
+      try {
+        const { snapshot } = await recordSnapshot(snapshotScope, {
+          markdown: document.markdown,
+          statusCode: document.metadata.statusCode ?? null,
+        });
+        document.changeTracking.snapshotId = snapshot.id;
+      } catch (error) {
+        meta.logger.error("Error saving change tracking snapshot", { error });
+        document.warning =
+          "This scrape could not be saved to the snapshot store, so later scrapes will not compare against it." +
+          (document.warning ? ` ${document.warning}` : "");
+      }
     }
   }
 
