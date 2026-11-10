@@ -29,4 +29,6 @@ EXPOSE ${PORT}
 
 USER node
 
-CMD [ "pnpm", "start" ]
+# Start node directly: `pnpm start` makes corepack download pnpm again at every
+# container start (its build-time copy belongs to root), which fails offline.
+CMD [ "node", "dist/api.js" ]

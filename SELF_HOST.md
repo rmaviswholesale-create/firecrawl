@@ -218,6 +218,12 @@ With the default `maxAge`, turning the cache on means a repeat scrape can
 return a copy up to two days old unless the request sets `maxAge`. The v1 API
 applies its own default of four hours.
 
+### Checking a deployment
+
+[`examples/self-host-smoke/smoke.py`](./examples/self-host-smoke/smoke.py)
+exercises every feature in this section against a running stack and exits
+non-zero on any failure. Its docstring lists what the stack needs.
+
 ## API keys
 
 Set `SELF_HOSTED_API_KEYS` to a comma-separated list of keys. Every request

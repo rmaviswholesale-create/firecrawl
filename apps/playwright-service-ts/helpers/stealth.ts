@@ -27,8 +27,37 @@ export const STEALTH_INIT_SCRIPT = `(() => {
   }
 
   if (!navigator.plugins || navigator.plugins.length === 0) {
-    const plugin = { name: 'PDF Viewer', filename: 'internal-pdf-viewer', description: 'Portable Document Format' };
-    define(Navigator.prototype, 'plugins', [plugin, { ...plugin, name: 'Chrome PDF Viewer' }]);
+    // Real PluginArray/Plugin prototypes, so instanceof and toString checks
+    // see what a desktop Chrome returns. The native getters reject objects
+    // they did not create, so every property read is defined on the instance.
+    const makePlugin = (name) => {
+      const plugin = Object.create(Plugin.prototype);
+      for (const [key, value] of Object.entries({
+        name,
+        filename: 'internal-pdf-viewer',
+        description: 'Portable Document Format',
+        length: 0,
+      })) {
+        Object.defineProperty(plugin, key, { value, enumerable: true });
+      }
+      return plugin;
+    };
+    const list = ['PDF Viewer', 'Chrome PDF Viewer'].map(makePlugin);
+    const plugins = Object.create(PluginArray.prototype);
+    list.forEach((plugin, index) => {
+      Object.defineProperty(plugins, index, { value: plugin, enumerable: true });
+      Object.defineProperty(plugins, plugin.name, { value: plugin });
+    });
+    Object.defineProperty(plugins, 'length', { value: list.length });
+    Object.defineProperty(plugins, 'item', { value: (index) => list[index] ?? null });
+    Object.defineProperty(plugins, 'namedItem', {
+      value: (name) => list.find((plugin) => plugin.name === name) ?? null,
+    });
+    Object.defineProperty(plugins, 'refresh', { value: () => {} });
+    Object.defineProperty(plugins, Symbol.iterator, {
+      value: () => list[Symbol.iterator](),
+    });
+    define(Navigator.prototype, 'plugins', plugins);
   }
 
   define(Navigator.prototype, 'hardwareConcurrency', 8);
