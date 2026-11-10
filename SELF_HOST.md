@@ -22,10 +22,11 @@ the services and configuration match the revision you checked out.
 - **Release: an exact tag.** Review the target release's Compose file before
   changing it. A checkout of `main` and floating image tags can change
   independently.
-- **API authentication: `USE_DB_AUTHENTICATION=false`.** Add authentication
-  after provisioning the required database schema and application
-  configuration. Changing this variable alone is not a complete authenticated
-  deployment.
+- **API authentication: `USE_DB_AUTHENTICATION=false`.** Set
+  `SELF_HOSTED_API_KEYS` to require a key on every request (see
+  [API keys](#api-keys)). `USE_DB_AUTHENTICATION=true` is a different thing:
+  it expects the hosted database schema and application configuration, and
+  changing that variable alone is not a complete authenticated deployment.
 - **Queue: NuQ PostgreSQL.** Keep it unless you intentionally set
   `NUQ_BACKEND=fdb` and are prepared to operate FoundationDB.
 - **Scraping: bundled Playwright with basic fetch fallback.** Connect and
@@ -51,12 +52,13 @@ security, availability, capacity, upgrades, data retention, and compliance.
 
 ## Before production
 
-- **If the API will leave a trusted network,** add a complete authentication
-  design, TLS termination, and network policy first. The default API is
+- **If the API will leave a trusted network,** set `SELF_HOSTED_API_KEYS`
+  and add TLS termination and network policy first. The default API is
   unauthenticated.
-- **If data must survive service replacement,** add and test persistence,
-  backups, and recovery for NuQ PostgreSQL, Redis, and RabbitMQ. The root
-  Compose file defines no persistent volumes for them.
+- **If data must survive service replacement,** test backups and recovery.
+  The root Compose file keeps Redis (append-only file) and NuQ PostgreSQL on
+  named volumes, `redis-data` and `nuq-postgres-data`; RabbitMQ has none.
+  `docker compose down -v` deletes them.
 - **If you change the PostgreSQL settings,** keep the API and database values
   consistent. At this revision, the bundled `pg_cron` configuration targets
   the default `postgres` database.
@@ -95,6 +97,30 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
 An action that cannot complete fails the scrape with `SCRAPE_ACTION_ERROR`.
 Without a Playwright service, actions are rejected and screenshots are
 unavailable.
+
+### Location, stealth and branding
+
+These also run on the Playwright service.
+
+- `location: {"country": "DE"}` makes the browser present as a visitor from
+  that country: `Accept-Language`, `navigator.language` and the timezone.
+  It does not change the IP address the request comes from; for that, set
+  `PROXY_SERVER` to a proxy in the country. `location.languages` overrides
+  the language list.
+- `proxy: "stealth"` (or `"enhanced"`) hides the markers headless Chromium
+  exposes (`navigator.webdriver`, the user agent, plugins, WebGL vendor) and
+  reports `metadata.proxyUsed: "stealth"`. If `STEALTH_PROXY_SERVER` is set,
+  those scrapes also go out through it, so a residential proxy can be kept
+  for the pages that need one. This defeats simple bot checks. It does not
+  defeat checks that score IP reputation or behaviour, and it does not solve
+  CAPTCHAs.
+- The `branding` format returns colors, fonts and logo candidates. With no
+  model provider configured it uses heuristics only.
+
+| Variable (playwright-service) | Effect |
+| --- | --- |
+| `STEALTH_PROXY_SERVER` | Upstream proxy for stealth scrapes only. |
+| `STEALTH_PROXY_USERNAME`, `STEALTH_PROXY_PASSWORD` | Its credentials. |
 
 ### Network capture (`network` format)
 
@@ -151,9 +177,8 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
 | `SNAPSHOT_HISTORY_LIMIT` | `30` | Versions kept per page and tag. |
 | `SNAPSHOT_TTL_DAYS` | `90` | Days a page's history survives without a new scrape; `0` keeps it. |
 
-History lives in Redis. The root Compose file gives Redis no volume, so
-snapshots are lost when the Redis container is replaced unless you add
-persistence.
+History lives in Redis, which the root Compose file keeps on the `redis-data`
+volume.
 
 ### Focused markdown (`focus` format)
 
@@ -168,6 +193,48 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
   "formats": [{"type": "focus", "query": "rate limits per API key", "maxTokens": 800}]
 }'
 ```
+
+### Page cache
+
+Set `LOCAL_CACHE_ENABLED=true` to keep scraped pages in Redis and serve
+repeat scrapes of the same URL from there. A request's `maxAge` (milliseconds)
+is the oldest copy it accepts; `maxAge: 0` always scrapes live, and
+`storeInCache: false` keeps a scrape out of the cache.
+`metadata.cacheState` is `hit` or `miss`, with `metadata.cachedAt` on a hit.
+
+Requests with `actions`, custom `headers`, a `profile`, or the `screenshot`,
+`network`, `changeTracking` or `branding` formats are never cached. Only
+responses with a 2xx status are stored. `minAge` is not supported by this
+cache.
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `LOCAL_CACHE_ENABLED` | off | Turns the cache on. |
+| `LOCAL_CACHE_DEFAULT_MAX_AGE_MS` | `172800000` (2 days) | `maxAge` for requests that set none. `0` caches only when a request asks. |
+| `LOCAL_CACHE_TTL_SECONDS` | `604800` (7 days) | How long Redis keeps a page. |
+| `LOCAL_CACHE_MAX_BYTES` | `5242880` | Pages with larger HTML are not cached. |
+
+With the default `maxAge`, turning the cache on means a repeat scrape can
+return a copy up to two days old unless the request sets `maxAge`. The v1 API
+applies its own default of four hours.
+
+## API keys
+
+Set `SELF_HOSTED_API_KEYS` to a comma-separated list of keys. Every request
+must then send one as `Authorization: Bearer <key>`; anything else gets
+`401`. Generate keys with `openssl rand -hex 32`.
+
+```bash
+SELF_HOSTED_API_KEYS=3f9c...e1,7ab2...9d docker compose up -d
+curl -s localhost:3002/v2/scrape -H 'Authorization: Bearer 3f9c...e1' \
+  -H 'Content-Type: application/json' -d '{"url": "https://example.com"}'
+```
+
+All keys share one team: they see the same snapshots and cache, and there
+are no per-key rate limits or credits. To rotate, add the new key, move
+callers over, then remove the old one and restart the API. The admin routes
+below are separate and use `BULL_AUTH_KEY`. Keys travel in clear text unless
+TLS terminates in front of the API.
 
 ## Admin routes
 

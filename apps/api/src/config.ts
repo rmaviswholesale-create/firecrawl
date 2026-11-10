@@ -419,11 +419,47 @@ const configSchema = z.object({
 
   // Local snapshot store (change tracking without Bigtable/GCS). On by
   // default when neither DB authentication nor Bigtable is configured.
-  SNAPSHOT_STORE_ENABLED: z.stringbool().optional(),
+  // Compose passes unset variables as "", so these all read "" as unset.
+  SNAPSHOT_STORE_ENABLED: emptyStringAsUndefined(z.stringbool()),
   // Page versions kept per (team, url, tag); the oldest are dropped first.
-  SNAPSHOT_HISTORY_LIMIT: z.coerce.number().int().min(1).default(30),
+  SNAPSHOT_HISTORY_LIMIT: emptyStringAsDefault(
+    z.coerce.number().int().min(1).default(30),
+  ),
   // Days a URL's history survives without being scraped again. 0 keeps it.
-  SNAPSHOT_TTL_DAYS: z.coerce.number().int().min(0).default(90),
+  SNAPSHOT_TTL_DAYS: emptyStringAsDefault(
+    z.coerce.number().int().min(0).default(90),
+  ),
+
+  // API keys for deployments without DB authentication (comma-separated).
+  // When set, every request needs one of them as a Bearer token.
+  SELF_HOSTED_API_KEYS: z.string().optional(),
+
+  // Local page cache (Redis) for deployments without the hosted index.
+  LOCAL_CACHE_ENABLED: emptyStringAsUndefined(z.stringbool()),
+  // maxAge applied to requests that do not set one. Default: 2 days.
+  LOCAL_CACHE_DEFAULT_MAX_AGE_MS: emptyStringAsDefault(
+    z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(2 * 24 * 60 * 60 * 1000),
+  ),
+  // How long Redis keeps a cached page, whatever maxAge later requests ask for.
+  LOCAL_CACHE_TTL_SECONDS: emptyStringAsDefault(
+    z.coerce
+      .number()
+      .int()
+      .min(60)
+      .default(7 * 24 * 60 * 60),
+  ),
+  // Pages whose HTML is larger than this are not cached.
+  LOCAL_CACHE_MAX_BYTES: emptyStringAsDefault(
+    z.coerce
+      .number()
+      .int()
+      .min(1024)
+      .default(5 * 1024 * 1024),
+  ),
   BIGTABLE_JOB_ACCESS_TABLE: z.string().optional(),
   BIGTABLE_FEEDBACK_JOBS_TABLE: z.string().optional(),
   BIGTABLE_SCRAPE_STATE_TABLE: z.string().optional(),

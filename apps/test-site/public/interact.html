@@ -14,6 +14,7 @@
       <p id="echo"></p>
       <p id="api">API pending.</p>
       <p id="device"></p>
+      <p id="browser"></p>
     </main>
     <script>
       document.getElementById("reveal").addEventListener("click", () => {
@@ -26,6 +27,15 @@
       });
       document.getElementById("device").textContent =
         "Viewport width: " + window.innerWidth;
+      document.getElementById("browser").textContent =
+        "Language: " +
+        navigator.language +
+        " | Timezone: " +
+        Intl.DateTimeFormat().resolvedOptions().timeZone +
+        " | Webdriver: " +
+        navigator.webdriver +
+        " | Headless: " +
+        /Headless/.test(navigator.userAgent);
       fetch("/example.json?source=xray")
         .then(response => response.json())
         .then(() => {

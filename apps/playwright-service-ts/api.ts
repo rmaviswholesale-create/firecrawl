@@ -26,6 +26,7 @@ import {
   takeScreenshot,
   validateActions,
 } from './helpers/interact';
+import { STEALTH_INIT_SCRIPT, chromeUserAgent } from './helpers/stealth';
 
 dotenv.config();
 
@@ -47,6 +48,12 @@ const ALLOW_LOCAL_WEBHOOKS =
 const PROXY_SERVER = process.env.PROXY_SERVER || null;
 const PROXY_USERNAME = process.env.PROXY_USERNAME || null;
 const PROXY_PASSWORD = process.env.PROXY_PASSWORD || null;
+
+// Optional separate upstream for stealth scrapes (e.g. a residential proxy).
+// Without it, stealth scrapes use PROXY_SERVER, or a direct connection.
+const STEALTH_PROXY_SERVER = process.env.STEALTH_PROXY_SERVER || null;
+const STEALTH_PROXY_USERNAME = process.env.STEALTH_PROXY_USERNAME || null;
+const STEALTH_PROXY_PASSWORD = process.env.STEALTH_PROXY_PASSWORD || null;
 
 class InsecureConnectionError extends Error {
   constructor(
@@ -79,24 +86,33 @@ const assertSafeTargetUrl = async (urlString: string): Promise<void> => {
   }
 };
 
-const buildUpstreamProxyUrl = (): string | undefined => {
-  if (!PROXY_SERVER) return undefined;
-  const server = PROXY_SERVER.includes('://')
-    ? PROXY_SERVER
-    : `http://${PROXY_SERVER}`;
+const buildProxyUrl = (
+  proxyServer: string | null,
+  username: string | null,
+  password: string | null,
+): string | undefined => {
+  if (!proxyServer) return undefined;
+  const server = proxyServer.includes('://')
+    ? proxyServer
+    : `http://${proxyServer}`;
   const url = new URL(server);
-  if (PROXY_USERNAME) url.username = PROXY_USERNAME;
-  if (PROXY_PASSWORD) url.password = PROXY_PASSWORD;
+  if (username) url.username = username;
+  if (password) url.password = password;
   return url.toString();
 };
 
-const startSSRFProxy = async (): Promise<number> => {
+const buildUpstreamProxyUrl = (): string | undefined =>
+  buildProxyUrl(PROXY_SERVER, PROXY_USERNAME, PROXY_PASSWORD);
+
+const startSSRFProxy = async (
+  upstreamProxyUrl: string | undefined = buildUpstreamProxyUrl(),
+): Promise<number> => {
   const server = new Server({
     port: 0,
     host: '127.0.0.1',
     prepareRequestFunction: ssrfPrepareRequest({
       allowLocal: ALLOW_LOCAL_WEBHOOKS,
-      upstreamProxyUrl: buildUpstreamProxyUrl(),
+      upstreamProxyUrl,
     }),
   });
   await server.listen();
@@ -104,6 +120,8 @@ const startSSRFProxy = async (): Promise<number> => {
 };
 
 let ssrfProxyPort: number;
+// Set only when STEALTH_PROXY_SERVER is configured.
+let stealthProxyPort: number | null = null;
 
 type ContextSecurityState = {
   blockedNavigationRequestUrl: string | null;
@@ -179,7 +197,26 @@ interface UrlModel {
   mobile?: boolean;
   /** Record the API calls the page makes. */
   capture_network?: NetworkCaptureOptions;
+  /** Harden the browser fingerprint and use the stealth proxy if configured. */
+  stealth?: boolean;
+  /** Present as a visitor from a locale and timezone. */
+  location?: BrowserLocation;
 }
+
+type BrowserLocation = {
+  locale?: string;
+  timezone_id?: string;
+  languages?: string[];
+};
+
+/** "de-DE", "en" -> "de-DE,en;q=0.9" */
+const acceptLanguage = (languages: string[]): string =>
+  languages
+    .slice(0, 5)
+    .map((language, index) =>
+      index === 0 ? language : `${language};q=${(1 - index * 0.1).toFixed(1)}`,
+    )
+    .join(',');
 
 let browser: Browser;
 
@@ -202,13 +239,19 @@ const createContext = async (
   skipTlsVerification: boolean = false,
   userAgentOverride?: string,
   mobile: boolean = false,
+  stealth: boolean = false,
+  location?: BrowserLocation,
 ): Promise<{
   context: BrowserContext;
   securityState: ContextSecurityState;
 }> => {
   const userAgent =
     userAgentOverride ||
-    (mobile ? MOBILE_CONTEXT.userAgent : new UserAgent().toString());
+    (mobile
+      ? MOBILE_CONTEXT.userAgent
+      : stealth
+        ? chromeUserAgent(browser.version())
+        : new UserAgent().toString());
   const viewport = mobile
     ? MOBILE_CONTEXT.viewport
     : { width: 1280, height: 800 };
@@ -228,13 +271,28 @@ const createContext = async (
           hasTouch: MOBILE_CONTEXT.hasTouch,
         }
       : {}),
+    ...(location?.locale ? { locale: location.locale } : {}),
+    ...(location?.timezone_id ? { timezoneId: location.timezone_id } : {}),
+    ...(location?.languages?.length
+      ? {
+          extraHTTPHeaders: {
+            'Accept-Language': acceptLanguage(location.languages),
+          },
+        }
+      : {}),
   };
 
   contextOptions.proxy = {
-    server: `http://127.0.0.1:${ssrfProxyPort}`,
+    server: `http://127.0.0.1:${
+      stealth && stealthProxyPort !== null ? stealthProxyPort : ssrfProxyPort
+    }`,
   };
 
   const newContext = await browser.newContext(contextOptions);
+
+  if (stealth) {
+    await newContext.addInitScript(STEALTH_INIT_SCRIPT);
+  }
 
   if (BLOCK_MEDIA) {
     await newContext.route(
@@ -415,6 +473,8 @@ app.post('/scrape', async (req: Request, res: Response) => {
     screenshot,
     mobile = false,
     capture_network,
+    stealth = false,
+    location,
   }: UrlModel = req.body;
 
   console.log(`================= Scrape Request =================`);
@@ -487,6 +547,8 @@ app.post('/scrape', async (req: Request, res: Response) => {
       skip_tls_verification,
       userAgentOverride,
       mobile,
+      stealth,
+      location,
     );
     requestContext = contextBundle.context;
     securityState = contextBundle.securityState;
@@ -598,6 +660,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
       ...(result.actions && { actions: result.actions }),
       ...(result.screenshot && { screenshot: result.screenshot }),
       ...(network && { network }),
+      ...(stealth && { stealth: true }),
     });
   } catch (error) {
     if (error instanceof InsecureConnectionError) {
@@ -628,6 +691,14 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
 const start = async () => {
   ssrfProxyPort = await startSSRFProxy();
+  const stealthUpstream = buildProxyUrl(
+    STEALTH_PROXY_SERVER,
+    STEALTH_PROXY_USERNAME,
+    STEALTH_PROXY_PASSWORD,
+  );
+  if (stealthUpstream) {
+    stealthProxyPort = await startSSRFProxy(stealthUpstream);
+  }
   await initializeBrowser();
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`);

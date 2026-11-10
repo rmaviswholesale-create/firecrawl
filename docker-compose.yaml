@@ -59,6 +59,12 @@ x-common-env: &common-env
   SNAPSHOT_STORE_ENABLED: ${SNAPSHOT_STORE_ENABLED}
   SNAPSHOT_HISTORY_LIMIT: ${SNAPSHOT_HISTORY_LIMIT:-30}
   SNAPSHOT_TTL_DAYS: ${SNAPSHOT_TTL_DAYS:-90}
+  # Require one of these comma-separated keys as a Bearer token (see SELF_HOST.md)
+  SELF_HOSTED_API_KEYS: ${SELF_HOSTED_API_KEYS}
+  # Local page cache for repeat scrapes (see SELF_HOST.md)
+  LOCAL_CACHE_ENABLED: ${LOCAL_CACHE_ENABLED}
+  LOCAL_CACHE_DEFAULT_MAX_AGE_MS: ${LOCAL_CACHE_DEFAULT_MAX_AGE_MS:-172800000}
+  LOCAL_CACHE_TTL_SECONDS: ${LOCAL_CACHE_TTL_SECONDS:-604800}
   # Set NUQ_BACKEND=fdb to run the queue on FoundationDB instead of Postgres
   NUQ_BACKEND: ${NUQ_BACKEND}
   FDB_CLUSTER_FILE: ${NUQ_BACKEND:+/var/fdb/fdb.cluster}
@@ -74,6 +80,10 @@ services:
       PROXY_SERVER: ${PROXY_SERVER}
       PROXY_USERNAME: ${PROXY_USERNAME}
       PROXY_PASSWORD: ${PROXY_PASSWORD}
+      # Optional separate upstream proxy for proxy: "stealth" scrapes
+      STEALTH_PROXY_SERVER: ${STEALTH_PROXY_SERVER}
+      STEALTH_PROXY_USERNAME: ${STEALTH_PROXY_USERNAME}
+      STEALTH_PROXY_PASSWORD: ${STEALTH_PROXY_PASSWORD}
       ALLOW_LOCAL_WEBHOOKS: ${ALLOW_LOCAL_WEBHOOKS}
       BLOCK_MEDIA: ${BLOCK_MEDIA}
       # Configure maximum concurrent pages for Playwright browser instances
@@ -140,7 +150,11 @@ services:
 
     networks:
       - backend
-    command: redis-server --bind 0.0.0.0
+    # Append-only persistence keeps snapshots, the page cache and queued work
+    # across container replacement.
+    command: redis-server --bind 0.0.0.0 --appendonly yes
+    volumes:
+      - redis-data:/data
     logging:
       driver: "json-file"
       options:
@@ -175,6 +189,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - nuq-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test:
         [
@@ -234,5 +250,7 @@ networks:
     driver: bridge
 
 volumes:
+  redis-data:
+  nuq-postgres-data:
   fdb-data:
   fdb-cluster-file:
