@@ -10,6 +10,7 @@ export type FormatString =
   | "screenshot"
   | "summary"
   | "changeTracking"
+  | "network"
   | "json"
   | "attributes"
   | "branding"
@@ -53,6 +54,67 @@ export interface ChangeTrackingFormat extends Format {
   schema?: Record<string, unknown> | ZodTypeAny;
   prompt?: string;
   tag?: string;
+  /**
+   * Compare against the page as it was at this point instead of the previous
+   * scrape: an ISO 8601 timestamp, or an age such as "30m", "24h", "7d", "2w".
+   * Self-hosted snapshot store only.
+   */
+  since?: string;
+}
+
+/** Capture the API calls a page makes. Self-hosted Playwright engine only. */
+export interface NetworkFormat {
+  type: "network";
+  resourceTypes?: (
+    | "xhr"
+    | "fetch"
+    | "document"
+    | "script"
+    | "stylesheet"
+    | "websocket"
+    | "eventsource"
+    | "other"
+  )[];
+  /** Only record requests whose URL matches this regular expression. */
+  urlPattern?: string;
+  includeBodies?: boolean;
+  maxRequests?: number;
+  maxBodyBytes?: number;
+}
+
+/** The parts of the page that match a query, fitted to a token budget. */
+export interface FocusFormat {
+  type: "focus";
+  query: string;
+  maxTokens?: number;
+}
+
+export interface NetworkCaptureEntry {
+  url: string;
+  method: string;
+  resourceType: string;
+  status: number;
+  contentType?: string;
+  requestBody?: string;
+  json?: unknown;
+  text?: string;
+  sizeBytes?: number;
+  truncated?: boolean;
+  startedAtMs: number;
+}
+
+export interface NetworkCapture {
+  requests: NetworkCaptureEntry[];
+  total: number;
+  truncated: boolean;
+}
+
+export interface FocusResult {
+  query: string;
+  markdown: string;
+  estimatedTokens: number;
+  sourceEstimatedTokens: number;
+  sections: { heading: string | null; score: number }[];
 }
 export interface AttributesFormat extends Format {
   type: "attributes";
@@ -85,6 +147,8 @@ export type FormatOption =
   | JsonFormat
   | ChangeTrackingFormat
   | ScreenshotFormat
+  | NetworkFormat
+  | FocusFormat
   | AttributesFormat
   | QuestionFormat
   | HighlightsFormat
@@ -92,7 +156,7 @@ export type FormatOption =
 
 export type ParseFormatString = Exclude<
   FormatString,
-  "screenshot" | "changeTracking" | "branding" | "audio" | "video"
+  "screenshot" | "changeTracking" | "network" | "branding" | "audio" | "video"
 >;
 
 export interface ParseFormat {
@@ -741,6 +805,8 @@ export interface Document {
   highlights?: string;
   warning?: string;
   changeTracking?: Record<string, unknown>;
+  network?: NetworkCapture;
+  focus?: FocusResult;
   branding?: BrandingProfile;
   product?: ProductProfile;
   menu?: MenuProfile;

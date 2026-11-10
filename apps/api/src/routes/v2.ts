@@ -33,6 +33,11 @@ import { mapController } from "../controllers/v2/map";
 import { crawlErrorsController } from "../controllers/v2/crawl-errors";
 import { ongoingCrawlsController } from "../controllers/v2/crawl-ongoing";
 import { scrapeStatusController } from "../controllers/v2/scrape-status";
+import {
+  snapshotDiffController,
+  snapshotGetController,
+  snapshotListController,
+} from "../controllers/v2/snapshots";
 import { creditUsageController } from "../controllers/v2/credit-usage";
 import { tokenUsageController } from "../controllers/v2/token-usage";
 import { crawlCancelController } from "../controllers/v2/crawl-cancel";
@@ -282,6 +287,24 @@ v2Router.get(
   authMiddleware(RateLimiterMode.CrawlStatus),
   validateJobIdParam,
   wrap(scrapeStatusController),
+);
+
+v2Router.get(
+  "/snapshots",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(snapshotListController),
+);
+
+v2Router.get(
+  "/snapshots/diff",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(snapshotDiffController),
+);
+
+v2Router.get(
+  "/snapshots/:snapshotId",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(snapshotGetController),
 );
 
 v2Router.post(

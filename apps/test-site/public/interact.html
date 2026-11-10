@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Interaction Test</title>
+  </head>
+  <body>
+    <main>
+      <h1>Interaction Test</h1>
+      <p id="status">Nothing clicked yet.</p>
+      <button id="reveal" type="button">Reveal</button>
+      <input id="name" type="text" aria-label="Name" />
+      <p id="echo"></p>
+      <p id="api">API pending.</p>
+      <p id="device"></p>
+    </main>
+    <script>
+      document.getElementById("reveal").addEventListener("click", () => {
+        document.getElementById("status").textContent =
+          "Revealed after click: firecrawl-actions-ok";
+      });
+      document.getElementById("name").addEventListener("input", event => {
+        document.getElementById("echo").textContent =
+          "Typed: " + event.target.value;
+      });
+      document.getElementById("device").textContent =
+        "Viewport width: " + window.innerWidth;
+      fetch("/example.json?source=xray")
+        .then(response => response.json())
+        .then(() => {
+          document.getElementById("api").textContent = "API loaded.";
+        })
+        .catch(() => {
+          document.getElementById("api").textContent = "API failed.";
+        });
+    </script>
+  </body>
+</html>

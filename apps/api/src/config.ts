@@ -416,6 +416,14 @@ const configSchema = z.object({
   BIGTABLE_INSTANCE_ID: z.string().optional(),
   BIGTABLE_APP_PROFILE_ID: z.string().optional(),
   BIGTABLE_CHANGE_TRACKING_TABLE: z.string().optional(),
+
+  // Local snapshot store (change tracking without Bigtable/GCS). On by
+  // default when neither DB authentication nor Bigtable is configured.
+  SNAPSHOT_STORE_ENABLED: z.stringbool().optional(),
+  // Page versions kept per (team, url, tag); the oldest are dropped first.
+  SNAPSHOT_HISTORY_LIMIT: z.coerce.number().int().min(1).default(30),
+  // Days a URL's history survives without being scraped again. 0 keeps it.
+  SNAPSHOT_TTL_DAYS: z.coerce.number().int().min(0).default(90),
   BIGTABLE_JOB_ACCESS_TABLE: z.string().optional(),
   BIGTABLE_FEEDBACK_JOBS_TABLE: z.string().optional(),
   BIGTABLE_SCRAPE_STATE_TABLE: z.string().optional(),

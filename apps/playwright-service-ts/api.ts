@@ -12,13 +12,28 @@ import UserAgent from 'user-agents';
 import { getError } from './helpers/get_error';
 import { Server } from 'proxy-chain';
 import { isInternalHost, ssrfPrepareRequest } from './helpers/ssrf';
+import {
+  Action,
+  ActionFailedError,
+  ActionResults,
+  MOBILE_CONTEXT,
+  NetworkCaptureOptions,
+  NetworkCaptureResult,
+  ScreenshotOptions,
+  compileUrlPattern,
+  runActions,
+  startNetworkCapture,
+  takeScreenshot,
+  validateActions,
+} from './helpers/interact';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3003;
 
-app.use(express.json());
+// Action scripts and long action lists exceed the 100kb default.
+app.use(express.json({ limit: '5mb' }));
 
 const BLOCK_MEDIA =
   (process.env.BLOCK_MEDIA || 'False').toUpperCase() === 'TRUE';
@@ -156,6 +171,14 @@ interface UrlModel {
   headers?: { [key: string]: string };
   check_selector?: string;
   skip_tls_verification?: boolean;
+  /** Scrape actions, run in order after the page loads. */
+  actions?: Action[];
+  /** Capture a screenshot of the final page state. */
+  screenshot?: ScreenshotOptions;
+  /** Emulate a phone (viewport, touch, mobile user agent). */
+  mobile?: boolean;
+  /** Record the API calls the page makes. */
+  capture_network?: NetworkCaptureOptions;
 }
 
 let browser: Browser;
@@ -178,12 +201,17 @@ const initializeBrowser = async () => {
 const createContext = async (
   skipTlsVerification: boolean = false,
   userAgentOverride?: string,
+  mobile: boolean = false,
 ): Promise<{
   context: BrowserContext;
   securityState: ContextSecurityState;
 }> => {
-  const userAgent = userAgentOverride || new UserAgent().toString();
-  const viewport = { width: 1280, height: 800 };
+  const userAgent =
+    userAgentOverride ||
+    (mobile ? MOBILE_CONTEXT.userAgent : new UserAgent().toString());
+  const viewport = mobile
+    ? MOBILE_CONTEXT.viewport
+    : { width: 1280, height: 800 };
   const securityState: ContextSecurityState = {
     blockedNavigationRequestUrl: null,
   };
@@ -193,6 +221,13 @@ const createContext = async (
     viewport,
     ignoreHTTPSErrors: skipTlsVerification,
     serviceWorkers: 'block',
+    ...(mobile
+      ? {
+          deviceScaleFactor: MOBILE_CONTEXT.deviceScaleFactor,
+          isMobile: MOBILE_CONTEXT.isMobile,
+          hasTouch: MOBILE_CONTEXT.hasTouch,
+        }
+      : {}),
   };
 
   contextOptions.proxy = {
@@ -264,7 +299,12 @@ const scrapePage = async (
   timeout: number,
   checkSelector: string | undefined,
   securityState: ContextSecurityState,
+  interaction: {
+    actions?: Action[];
+    screenshot?: ScreenshotOptions;
+  } = {},
 ) => {
+  const deadline = Date.now() + timeout;
   console.log(
     `Navigating to ${url} with waitUntil: ${waitUntil} and timeout: ${timeout}ms`,
   );
@@ -293,6 +333,15 @@ const scrapePage = async (
     }
   }
 
+  let actionResults: ActionResults | undefined;
+  if (interaction.actions?.length) {
+    actionResults = await runActions(page, interaction.actions, deadline);
+  }
+
+  const screenshot = interaction.screenshot
+    ? await takeScreenshot(page, interaction.screenshot)
+    : undefined;
+
   let headers = null,
     content = await page.content(),
     landedUrl = page.url();
@@ -304,6 +353,9 @@ const scrapePage = async (
     )?.[1];
     if (
       ct &&
+      // Actions may have navigated or rewritten the page; the first response
+      // body no longer describes it.
+      !actionResults &&
       (ct.toLowerCase().includes('application/json') ||
         ct.toLowerCase().includes('text/plain'))
     ) {
@@ -321,6 +373,8 @@ const scrapePage = async (
     status: response ? response.status() : null,
     headers,
     contentType: ct,
+    actions: actionResults,
+    screenshot,
   };
 };
 
@@ -357,6 +411,10 @@ app.post('/scrape', async (req: Request, res: Response) => {
     headers,
     check_selector,
     skip_tls_verification = false,
+    actions,
+    screenshot,
+    mobile = false,
+    capture_network,
   }: UrlModel = req.body;
 
   console.log(`================= Scrape Request =================`);
@@ -374,6 +432,16 @@ app.post('/scrape', async (req: Request, res: Response) => {
 
   if (!isValidUrl(url)) {
     return res.status(400).json({ error: 'Invalid URL' });
+  }
+
+  const actionsProblem = validateActions(actions);
+  if (actionsProblem) {
+    return res.status(400).json({ error: actionsProblem });
+  }
+
+  const urlPattern = compileUrlPattern(capture_network?.urlPattern);
+  if (urlPattern.error) {
+    return res.status(400).json({ error: urlPattern.error });
   }
 
   try {
@@ -418,10 +486,15 @@ app.post('/scrape', async (req: Request, res: Response) => {
     const contextBundle = await createContext(
       skip_tls_verification,
       userAgentOverride,
+      mobile,
     );
     requestContext = contextBundle.context;
     securityState = contextBundle.securityState;
     page = await requestContext.newPage();
+
+    const networkCapture = capture_network
+      ? startNetworkCapture(page, capture_network, urlPattern.regex)
+      : undefined;
 
     if (headers) {
       // A Cookie header passed through setExtraHTTPHeaders is sent on the first
@@ -501,7 +574,10 @@ app.post('/scrape', async (req: Request, res: Response) => {
       timeout,
       check_selector,
       securityState,
+      { actions, screenshot },
     );
+    const network: NetworkCaptureResult | undefined =
+      await networkCapture?.collect();
     const pageError =
       result.status !== 200 ? getError(result.status) : undefined;
 
@@ -519,6 +595,9 @@ app.post('/scrape', async (req: Request, res: Response) => {
       contentType: result.contentType,
       url: result.url,
       ...(pageError && { pageError }),
+      ...(result.actions && { actions: result.actions }),
+      ...(result.screenshot && { screenshot: result.screenshot }),
+      ...(network && { network }),
     });
   } catch (error) {
     if (error instanceof InsecureConnectionError) {
@@ -526,6 +605,14 @@ app.post('/scrape', async (req: Request, res: Response) => {
         content: '',
         pageStatusCode: 403,
         pageError: error.message,
+      });
+    }
+    if (error instanceof ActionFailedError) {
+      console.warn(error.message);
+      return res.json({
+        content: '',
+        pageStatusCode: 200,
+        actionError: error.message,
       });
     }
     console.error('Scrape error:', error);
