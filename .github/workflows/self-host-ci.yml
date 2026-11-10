@@ -39,6 +39,9 @@ jobs:
       SELF_HOSTED_API_KEYS: test
       LOCAL_CACHE_ENABLED: true
       LOCAL_CACHE_DEFAULT_MAX_AGE_MS: 0
+      # Short watch schedules so the scheduled-run test finishes quickly.
+      WATCH_POLL_INTERVAL_MS: 2000
+      WATCH_MIN_INTERVAL_SECONDS: 5
       PLAYWRIGHT_MICROSERVICE_URL: http://localhost:3003/scrape
       NUQ_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       NUQ_RABBITMQ_URL: amqp://localhost:5672
@@ -172,8 +175,8 @@ jobs:
         env:
           npm_config_ignore_scripts: 'true'
 
-      - name: Run self-hosted auth unit tests
-        run: pnpm exec vitest run src/lib/self-hosted-auth.test.ts --reporter=default
+      - name: Run self-host unit tests
+        run: pnpm exec vitest run src/lib/self-hosted-auth.test.ts src/lib/change-tracking-diff.test.ts --reporter=default
         working-directory: apps/api
 
       - name: Install test site dependencies
@@ -211,6 +214,7 @@ jobs:
           src/__tests__/snips/v2/scrape-focus.test.ts
           src/__tests__/snips/v2/local-cache.test.ts
           src/__tests__/snips/v2/self-hosted-auth.test.ts
+          src/__tests__/snips/v2/watch.test.ts
           src/__tests__/snips/v2/scrape.test.ts
           src/__tests__/snips/v2/scrape-formats.test.ts
           src/__tests__/snips/v1/scrape.test.ts

@@ -183,6 +183,74 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
 History lives in Redis, which the root Compose file keeps on the `redis-data`
 volume.
 
+### Watches
+
+A watch re-scrapes a URL on a schedule and calls a webhook when the page
+changes. It uses the snapshot store above, so it needs no model, no extra
+database and no Supabase.
+
+```bash
+curl -s localhost:3002/v2/watch -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com/pricing",
+  "schedule": {"cron": "0 * * * *", "timezone": "America/New_York"},
+  "webhook": {"url": "https://hooks.example.com/pricing", "secret": "s3cret"}
+}'
+```
+
+`schedule` is either `{"cron": "...", "timezone": "..."}` (five-field cron,
+timezone defaults to `UTC`) or `{"everySeconds": 3600}`.
+
+`notifyOn` chooses which outcomes call the webhook: any of `new` (first
+run), `same`, `changed`, `removed`. The default is `["changed", "removed"]`.
+
+The webhook receives a JSON `POST`:
+
+```json
+{
+  "type": "watch.changed",
+  "watchId": "…",
+  "runId": "…",
+  "url": "https://example.com/pricing",
+  "changeStatus": "changed",
+  "checkedAt": "2026-01-01T00:00:00.000Z",
+  "snapshotId": "…",
+  "comparedTo": { "snapshotId": "…", "capturedAt": "…" },
+  "diff": "--- previous.md\n+++ current.md\n…"
+}
+```
+
+With a `secret`, each delivery carries
+`X-Firecrawl-Signature: sha256=<HMAC-SHA256 of the raw body>`. The secret is
+never returned by the API. `diff` is `null` when the diff is larger than
+100,000 characters or too large to compute; fetch the two snapshots instead.
+
+| Route | Does |
+| --- | --- |
+| `POST /v2/watch` | Create a watch. |
+| `GET /v2/watch` | List watches. |
+| `GET /v2/watch/<id>` | One watch, with `lastStatus` and `nextRunAt`. |
+| `DELETE /v2/watch/<id>` | Delete it and its run history. |
+| `POST /v2/watch/<id>/run` | Run it now and return the result. |
+| `GET /v2/watch/<id>/runs` | Up to 50 recent runs, newest first. |
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `WATCH_POLL_INTERVAL_MS` | `15000` | How often the worker looks for due watches. |
+| `WATCH_MIN_INTERVAL_SECONDS` | `60` | Shortest schedule allowed. |
+| `WATCH_MAX_PER_TEAM` | `200` | Watches allowed. |
+
+Limits to know:
+
+- A failed webhook delivery is recorded on the run (`webhook.delivered:
+  false`) and is not retried. The next change sends a new one.
+- Runs missed while the stack was down are not replayed: a due watch runs
+  once when the worker returns.
+- Watches and run history live in Redis, like snapshots.
+- A watch's baseline is a snapshot, so it expires with `SNAPSHOT_TTL_DAYS`.
+  A watch that runs less often than that reports `new` every time.
+- Webhooks to private addresses are refused unless `ALLOW_LOCAL_WEBHOOKS` is
+  set.
+
 ### Focused markdown (`focus` format)
 
 Returns the parts of the page that match a query, within a token budget, in

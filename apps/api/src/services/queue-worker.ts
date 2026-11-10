@@ -1,3 +1,4 @@
+import { startWatchScheduler } from "./watch/scheduler";
 import "dotenv/config";
 import { config } from "../config";
 import { shutdownTracing } from "../otel";
@@ -46,6 +47,7 @@ const gotJobInterval = config.CONNECTION_MONITOR_INTERVAL;
 
 const runningJobs: Set<string> = new Set();
 let monitorSchedulerInterval: NodeJS.Timeout | null = null;
+let stopWatchScheduler: (() => void) | null = null;
 
 const processDeepResearchJobInternal = async (
   token: string,
@@ -466,6 +468,7 @@ app.listen(workerPort, (error?: Error) => {
       consumeMonitorSearchCheckJobs(processMonitorCheckJob),
     ]);
   } else if (!config.USE_DB_AUTHENTICATION) {
+    stopWatchScheduler = startWatchScheduler();
     _logger.info(
       "Skipping monitor worker startup because database authentication is disabled",
     );
@@ -484,6 +487,7 @@ app.listen(workerPort, (error?: Error) => {
   if (monitorSchedulerInterval) {
     clearInterval(monitorSchedulerInterval);
   }
+  stopWatchScheduler?.();
 
   _logger.info("All workers exited. Waiting for all jobs to finish...");
 

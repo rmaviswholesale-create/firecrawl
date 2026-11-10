@@ -38,6 +38,14 @@ import {
   snapshotGetController,
   snapshotListController,
 } from "../controllers/v2/snapshots";
+import {
+  watchCreateController,
+  watchDeleteController,
+  watchGetController,
+  watchListController,
+  watchRunController,
+  watchRunsController,
+} from "../controllers/v2/watch";
 import { creditUsageController } from "../controllers/v2/credit-usage";
 import { tokenUsageController } from "../controllers/v2/token-usage";
 import { crawlCancelController } from "../controllers/v2/crawl-cancel";
@@ -287,6 +295,44 @@ v2Router.get(
   authMiddleware(RateLimiterMode.CrawlStatus),
   validateJobIdParam,
   wrap(scrapeStatusController),
+);
+
+v2Router.post(
+  "/watch",
+  authMiddleware(RateLimiterMode.Scrape),
+  countryCheck,
+  blocklistMiddleware,
+  wrap(watchCreateController),
+);
+
+v2Router.get(
+  "/watch",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(watchListController),
+);
+
+v2Router.get(
+  "/watch/:watchId",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(watchGetController),
+);
+
+v2Router.delete(
+  "/watch/:watchId",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(watchDeleteController),
+);
+
+v2Router.post(
+  "/watch/:watchId/run",
+  authMiddleware(RateLimiterMode.Scrape),
+  wrap(watchRunController),
+);
+
+v2Router.get(
+  "/watch/:watchId/runs",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(watchRunsController),
 );
 
 v2Router.get(
