@@ -430,6 +430,19 @@ const configSchema = z.object({
     z.coerce.number().int().min(0).default(90),
   ),
 
+  // Watches: scheduled re-scrapes with change detection (local snapshot
+  // store only). How often the worker looks for due watches.
+  WATCH_POLL_INTERVAL_MS: emptyStringAsDefault(
+    z.coerce.number().int().min(1000).default(15_000),
+  ),
+  // Shortest schedule a watch may have.
+  WATCH_MIN_INTERVAL_SECONDS: emptyStringAsDefault(
+    z.coerce.number().int().min(1).default(60),
+  ),
+  WATCH_MAX_PER_TEAM: emptyStringAsDefault(
+    z.coerce.number().int().min(1).default(200),
+  ),
+
   // API keys for deployments without DB authentication (comma-separated).
   // When set, every request needs one of them as a Bearer token.
   SELF_HOSTED_API_KEYS: z.string().optional(),
