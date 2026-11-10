@@ -86,6 +86,8 @@ export async function snapshotDiffController(
     from: fromSummary,
     to: toSummary,
     ...(diff ? { diff } : {}),
+    // The versions differ but the diff was too large to compute.
+    ...(changed && !diff ? { diffOmitted: true } : {}),
   });
 }
 

@@ -854,7 +854,14 @@ export async function authenticateUser(
 ): Promise<AuthResponse> {
   if (
     selfHostedAuthEnabled &&
-    !isSelfHostedApiKey(bearerToken(req.headers?.authorization))
+    !isSelfHostedApiKey(
+      // WebSocket clients cannot set headers, so they send the key as the
+      // subprotocol, as the hosted key lookup also accepts.
+      bearerToken(req.headers?.authorization) ??
+        (typeof req.headers?.["sec-websocket-protocol"] === "string"
+          ? req.headers["sec-websocket-protocol"]
+          : null),
+    )
   ) {
     return {
       success: false,

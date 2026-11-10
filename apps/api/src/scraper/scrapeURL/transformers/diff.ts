@@ -223,6 +223,10 @@ export async function deriveDiff(
             text: diff.text,
             json: diff.json,
           };
+        } else if (previous.snapshot) {
+          document.warning =
+            "The page changed, but the diff was too large to compute." +
+            (document.warning ? ` ${document.warning}` : "");
         }
       }
 
