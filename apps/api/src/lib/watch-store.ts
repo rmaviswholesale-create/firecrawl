@@ -170,6 +170,13 @@ export async function saveWatchExtractedState(
   await getRedisConnection().set(stateKey(teamId, id), JSON.stringify(data));
 }
 
+export async function clearWatchExtractedState(
+  teamId: string,
+  id: string,
+): Promise<void> {
+  await getRedisConnection().del(stateKey(teamId, id));
+}
+
 export async function recordWatchRun(
   teamId: string,
   id: string,

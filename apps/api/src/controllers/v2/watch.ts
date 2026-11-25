@@ -12,6 +12,7 @@ import { snapshotStoreEnabled } from "../../lib/snapshot-store";
 import {
   type Watch,
   type WatchSchedule,
+  clearWatchExtractedState,
   countWatches,
   deleteWatch,
   getWatch,
@@ -287,7 +288,14 @@ export async function watchUpdateController(req: WatchRequest, res: Response) {
         : existing.extractRules,
     nextRunAt: nextRunAtIso,
   };
+  const extractRulesChanged =
+    body.data.extractRules !== undefined &&
+    JSON.stringify(existing.extractRules ?? null) !==
+      JSON.stringify(updated.extractRules ?? null);
   await saveWatch(req.auth.team_id, updated);
+  if (extractRulesChanged) {
+    await clearWatchExtractedState(req.auth.team_id, updated.id);
+  }
   return res.status(200).json({ success: true, watch: publicWatch(updated) });
 }
 

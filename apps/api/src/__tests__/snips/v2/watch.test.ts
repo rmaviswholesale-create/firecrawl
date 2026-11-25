@@ -309,4 +309,58 @@ describe("Watches", () => {
     },
     3 * scrapeTimeout,
   );
+
+  itIf(LOCAL_WATCH)(
+    "resets extracted baseline when extractRules are updated via PATCH",
+    async () => {
+      const key = crypto.randomUUID();
+      prices.set(key, "$10");
+      noise.set(key, "banner-v1");
+
+      const created = await api("post", "/v2/watch").send({
+        url: `${base}/page/${key}`,
+        schedule: { cron: "0 3 * * *" },
+        webhook: { url: `${base}/hook/${key}` },
+        extractRules: {
+          price: { selector: ".price", transform: "number" },
+        },
+      });
+      expect(created.statusCode).toBe(200);
+      const id = created.body.watch.id as string;
+
+      try {
+        // Establish baseline with initial extractRules.
+        const r1 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r1.statusCode).toBe(200);
+        expect(r1.body.run.changeStatus).toBe("new");
+        expect(r1.body.run.extracted).toEqual({ price: 10 });
+
+        // Update extractRules without changing the page itself.
+        const patched = await api("patch", `/v2/watch/${id}`).send({
+          extractRules: {
+            footer: { selector: ".noise" },
+          },
+        });
+        expect(patched.statusCode).toBe(200);
+
+        // Next run must establish a fresh baseline ("new") rather than diffing
+        // against the previous rules' extracted state and reporting "changed".
+        const r2 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r2.statusCode).toBe(200);
+        expect(r2.body.run.changeStatus).toBe("new");
+        expect(r2.body.run.fieldChanges).toEqual([]);
+        expect(r2.body.run.extracted).toEqual({ footer: "banner-v1" });
+        expect(deliveries.get(key)).toBeUndefined();
+
+        // Subsequent run with unchanged page reports "same".
+        const r3 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r3.statusCode).toBe(200);
+        expect(r3.body.run.changeStatus).toBe("same");
+        expect(r3.body.run.fieldChanges).toEqual([]);
+      } finally {
+        await api("delete", `/v2/watch/${id}`);
+      }
+    },
+    3 * scrapeTimeout,
+  );
 });
