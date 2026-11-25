@@ -20,7 +20,9 @@
       "post": {
         "summary": "Create a monitor",
         "operationId": "createMonitor",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -46,14 +48,18 @@
                     "notification": {
                       "email": {
                         "enabled": true,
-                        "recipients": ["alerts@example.com"],
+                        "recipients": [
+                          "alerts@example.com"
+                        ],
                         "includeDiffs": true
                       }
                     },
                     "targets": [
                       {
                         "type": "scrape",
-                        "urls": ["https://example.com/blog"]
+                        "urls": [
+                          "https://example.com/blog"
+                        ]
                       }
                     ]
                   }
@@ -68,7 +74,10 @@
                     },
                     "webhook": {
                       "url": "https://example.com/webhooks/firecrawl",
-                      "events": ["monitor.page", "monitor.check.completed"]
+                      "events": [
+                        "monitor.page",
+                        "monitor.check.completed"
+                      ]
                     },
                     "goal": "Notify me when docs pages add, remove, or materially change API behavior",
                     "targets": [
@@ -105,7 +114,9 @@
       "get": {
         "summary": "List monitors",
         "operationId": "listMonitors",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -150,7 +161,9 @@
       "get": {
         "summary": "Get a monitor",
         "operationId": "getMonitor",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -180,7 +193,9 @@
       "patch": {
         "summary": "Update a monitor",
         "operationId": "updateMonitor",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -226,7 +241,9 @@
       "delete": {
         "summary": "Delete a monitor",
         "operationId": "deleteMonitor",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -258,7 +275,9 @@
       "post": {
         "summary": "Run a monitor",
         "operationId": "runMonitor",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -290,7 +309,9 @@
       "get": {
         "summary": "List monitor checks",
         "operationId": "listMonitorChecks",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -355,7 +376,9 @@
       "get": {
         "summary": "Get a monitor check",
         "operationId": "getMonitorCheck",
-        "tags": ["Monitoring"],
+        "tags": [
+          "Monitoring"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -400,7 +423,13 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": ["same", "new", "changed", "removed", "error"]
+              "enum": [
+                "same",
+                "new",
+                "changed",
+                "removed",
+                "error"
+              ]
             }
           }
         ],
@@ -425,7 +454,9 @@
       "post": {
         "summary": "Scrape a single URL and optionally extract information using an LLM",
         "operationId": "scrapeAndExtractFromUrl",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -446,7 +477,9 @@
                         "description": "The URL to scrape"
                       }
                     },
-                    "required": ["url"]
+                    "required": [
+                      "url"
+                    ]
                   },
                   {
                     "$ref": "#/components/schemas/ScrapeOptions"
@@ -478,7 +511,7 @@
                             }
                           }
                         ],
-                        "description": "Execute one or more catalogued provider tools instead of scraping a URL. Cannot be combined with `url`, `formats`, or other scrape options (400); the only allowed sibling keys are `timeout`, `origin`, and `integration`. Use the `x-request-id` request header as a client-chosen idempotency key (1 to 128 characters of letters, digits, `.`, `_`, `:`, `-`) — it is echoed back, and a completed request with the same key replays its original response and `scrape_id` instead of re-executing. To browse the catalogue and read tool contracts for free, call Find Tools: set `provider` to `firecrawl`, `capability` to `find-tools`, and `options` to a `FindToolsOptions` object. The result `data` is a `FindToolsData` page."
+                        "description": "Execute one or more catalogued provider tools instead of scraping a URL. Cannot be combined with `url`, `formats`, or other scrape options (400); the only allowed sibling keys are `timeout`, `origin`, and `integration`. Use the `x-request-id` request header as a client-chosen idempotency key (1 to 128 characters of letters, digits, `.`, `_`, `:`, `-`) \u2014 it is echoed back, and a completed request with the same key replays its original response and `scrape_id` instead of re-executing. To browse the catalogue and read tool contracts for free, call Find Tools: set `provider` to `firecrawl`, `capability` to `find-tools`, and `options` to a `FindToolsOptions` object. The result `data` is a `FindToolsData` page."
                       },
                       "domainTools": {
                         "type": "boolean",
@@ -487,7 +520,11 @@
                       },
                       "toolDetail": {
                         "type": "string",
-                        "enum": ["compact", "summary", "full"],
+                        "enum": [
+                          "compact",
+                          "summary",
+                          "full"
+                        ],
                         "description": "How much of each tool contract to return in `data.tools` when `domainTools` is true. `compact` returns only `provider`, `capability`, and `description`. `summary` returns the full tool entry without `options` and `response`. `full` also returns `options`, `response`, and `examples`. If you omit it, tools are returned as with `summary`."
                       }
                     }
@@ -499,7 +536,9 @@
                   "summary": "Scrape a URL",
                   "value": {
                     "url": "https://example.com",
-                    "formats": ["markdown"]
+                    "formats": [
+                      "markdown"
+                    ]
                   }
                 },
                 "findTools": {
@@ -510,9 +549,14 @@
                       "provider": "firecrawl",
                       "capability": "find-tools",
                       "options": {
-                        "providers": ["particle"],
+                        "providers": [
+                          "particle"
+                        ],
                         "level": "tools",
-                        "expand": ["options", "response"],
+                        "expand": [
+                          "options",
+                          "response"
+                        ],
                         "limit": 2
                       }
                     }
@@ -617,7 +661,9 @@
                       "properties": {
                         "type": {
                           "type": "string",
-                          "enum": ["accept_terms"],
+                          "enum": [
+                            "accept_terms"
+                          ],
                           "description": "The action to take. Always `accept_terms`."
                         },
                         "terms": {
@@ -634,7 +680,12 @@
                           "description": "The dashboard page where a human (an organization admin) accepts the terms. Send this URL to a person; do not accept the terms automatically."
                         }
                       },
-                      "required": ["type", "terms", "version", "url"]
+                      "required": [
+                        "type",
+                        "terms",
+                        "version",
+                        "url"
+                      ]
                     },
                     "chargeId": {
                       "type": "string"
@@ -738,7 +789,7 @@
             }
           },
           "503": {
-            "description": "Service unavailable. Returned as `request_unresolved` when the outcome of an in-flight `alexandria` request with this `x-request-id` could not be determined — keep the same `x-request-id` and retry rather than issuing a new request. Also returned as `billing_unavailable` when credits could not be charged.",
+            "description": "Service unavailable. Returned as `request_unresolved` when the outcome of an in-flight `alexandria` request with this `x-request-id` could not be determined \u2014 keep the same `x-request-id` and retry rather than issuing a new request. Also returned as `billing_unavailable` when credits could not be charged.",
             "content": {
               "application/json": {
                 "schema": {
@@ -771,7 +822,9 @@
       "post": {
         "summary": "Interact with the browser session associated with a scrape job",
         "operationId": "interactWithScrapeBrowserSession",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -795,7 +848,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["code"],
+                "required": [
+                  "code"
+                ],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -805,7 +860,11 @@
                   },
                   "language": {
                     "type": "string",
-                    "enum": ["python", "node", "bash"],
+                    "enum": [
+                      "python",
+                      "node",
+                      "bash"
+                    ],
                     "default": "node",
                     "description": "Language of the code to execute. Use `node` for JavaScript or `bash` for agent-browser CLI commands."
                   },
@@ -1055,7 +1114,9 @@
       "delete": {
         "summary": "Stop the interactive browser session associated with a scrape job",
         "operationId": "stopInteractiveScrapeBrowserSession",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1136,7 +1197,9 @@
       "post": {
         "summary": "Upload and parse a file",
         "operationId": "parseFile",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1158,7 +1221,9 @@
                     "$ref": "#/components/schemas/ParseOptions"
                   }
                 },
-                "required": ["file"]
+                "required": [
+                  "file"
+                ]
               },
               "encoding": {
                 "options": {
@@ -1266,7 +1331,9 @@
       "get": {
         "summary": "List file formats supported by /parse",
         "operationId": "getParseFormats",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1299,7 +1366,10 @@
                               },
                               "kind": {
                                 "type": "string",
-                                "enum": ["document", "image"],
+                                "enum": [
+                                  "document",
+                                  "image"
+                                ],
                                 "description": "Whether the format is parsed as a document or OCR'd as an image.",
                                 "example": "document"
                               },
@@ -1309,7 +1379,9 @@
                                   "type": "string"
                                 },
                                 "description": "File extensions accepted for this format, canonical first.",
-                                "example": [".docx"]
+                                "example": [
+                                  ".docx"
+                                ]
                               },
                               "mimeTypes": {
                                 "type": "array",
@@ -1363,7 +1435,9 @@
       "post": {
         "summary": "Scrape multiple URLs and optionally extract information using an LLM",
         "operationId": "scrapeAndExtractFromUrls",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1411,11 +1485,18 @@
                             "description": "Type of events that should be sent to the webhook URL. (default: all)",
                             "items": {
                               "type": "string",
-                              "enum": ["completed", "page", "failed", "started"]
+                              "enum": [
+                                "completed",
+                                "page",
+                                "failed",
+                                "started"
+                              ]
                             }
                           }
                         },
-                        "required": ["url"]
+                        "required": [
+                          "url"
+                        ]
                       },
                       "maxConcurrency": {
                         "type": "integer",
@@ -1427,7 +1508,9 @@
                         "description": "If invalid URLs are specified in the urls array, they will be ignored. Instead of them failing the entire request, a batch scrape using the remaining valid URLs will be created, and the invalid URLs will be returned in the invalidURLs field of the response."
                       }
                     },
-                    "required": ["urls"]
+                    "required": [
+                      "urls"
+                    ]
                   },
                   {
                     "$ref": "#/components/schemas/ScrapeOptions"
@@ -1525,7 +1608,9 @@
       "get": {
         "summary": "Get the status of a batch scrape job",
         "operationId": "getBatchScrapeStatus",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1595,7 +1680,9 @@
       "delete": {
         "summary": "Cancel a batch scrape job",
         "operationId": "cancelBatchScrape",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1611,7 +1698,9 @@
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": ["cancelled"],
+                      "enum": [
+                        "cancelled"
+                      ],
                       "example": "cancelled"
                     }
                   }
@@ -1670,7 +1759,9 @@
       "get": {
         "summary": "Get the errors of a batch scrape job",
         "operationId": "getBatchScrapeErrors",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1754,7 +1845,9 @@
       "get": {
         "summary": "Get the status of a crawl job",
         "operationId": "getCrawlStatus",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1824,7 +1917,9 @@
       "delete": {
         "summary": "Cancel a crawl job",
         "operationId": "cancelCrawl",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1840,7 +1935,9 @@
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": ["cancelled"],
+                      "enum": [
+                        "cancelled"
+                      ],
                       "example": "cancelled"
                     }
                   }
@@ -1899,7 +1996,9 @@
       "get": {
         "summary": "Get the errors of a crawl job",
         "operationId": "getCrawlErrors",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -1971,7 +2070,9 @@
       "post": {
         "summary": "Crawl multiple URLs based on options",
         "operationId": "crawlUrls",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2009,7 +2110,7 @@
                       "type": "string",
                       "maxLength": 2000
                     },
-                    "description": "URL pathname regex patterns that include matching URLs in the crawl. Only the paths that match the specified patterns will be included in the response. Note: the starting URL is also checked against these patterns — if it does not match, the crawl may return 0 pages. For example, if you set \"includePaths\": [\"blog/.*\"] for the base URL firecrawl.dev/blog, only pages under /blog/ will be included in the results, such as https://www.firecrawl.dev/blog/firecrawl-launch-week-1-recap. Patterns use Rust regex (RE2-style) syntax: look-around and backreferences are not supported, and a pattern that does not compile is rejected with a 400. Each field accepts at most 1000 patterns of at most 2000 characters each, and includePaths and excludePaths together may contain at most 1000 patterns and 100,000 characters in total. For keyword-style filtering, send one short pattern per term rather than combining terms into a single long alternation."
+                    "description": "URL pathname regex patterns that include matching URLs in the crawl. Only the paths that match the specified patterns will be included in the response. Note: the starting URL is also checked against these patterns \u2014 if it does not match, the crawl may return 0 pages. For example, if you set \"includePaths\": [\"blog/.*\"] for the base URL firecrawl.dev/blog, only pages under /blog/ will be included in the results, such as https://www.firecrawl.dev/blog/firecrawl-launch-week-1-recap. Patterns use Rust regex (RE2-style) syntax: look-around and backreferences are not supported, and a pattern that does not compile is rejected with a 400. Each field accepts at most 1000 patterns of at most 2000 characters each, and includePaths and excludePaths together may contain at most 1000 patterns and 100,000 characters in total. For keyword-style filtering, send one short pattern per term rather than combining terms into a single long alternation."
                   },
                   "maxDiscoveryDepth": {
                     "type": "integer",
@@ -2017,7 +2118,11 @@
                   },
                   "sitemap": {
                     "type": "string",
-                    "enum": ["skip", "include", "only"],
+                    "enum": [
+                      "skip",
+                      "include",
+                      "only"
+                    ],
                     "description": "Sitemap mode when crawling. If you set it to 'skip', the crawler will ignore the website sitemap and only crawl the entered URL and discover pages from there onwards. If you set it to 'only', the crawler will only crawl URLs from the sitemap (plus the start URL) and will not discover links from HTML.",
                     "default": "include"
                   },
@@ -2038,7 +2143,7 @@
                   },
                   "crawlEntireDomain": {
                     "type": "boolean",
-                    "description": "Allows the crawler to follow internal links to sibling or parent URLs, not just child paths.\n\nfalse: Only crawls deeper (child) URLs.\n→ e.g. /features/feature-1 → /features/feature-1/tips ✅\n→ Won't follow /pricing or / ❌\n\ntrue: Crawls any internal links, including siblings and parents.\n→ e.g. /features/feature-1 → /pricing, /, etc. ✅\n\nUse true for broader internal coverage beyond nested paths.",
+                    "description": "Allows the crawler to follow internal links to sibling or parent URLs, not just child paths.\n\nfalse: Only crawls deeper (child) URLs.\n\u2192 e.g. /features/feature-1 \u2192 /features/feature-1/tips \u2705\n\u2192 Won't follow /pricing or / \u274c\n\ntrue: Crawls any internal links, including siblings and parents.\n\u2192 e.g. /features/feature-1 \u2192 /pricing, /, etc. \u2705\n\nUse true for broader internal coverage beyond nested paths.",
                     "default": false
                   },
                   "allowExternalLinks": {
@@ -2053,12 +2158,12 @@
                   },
                   "ignoreRobotsTxt": {
                     "type": "boolean",
-                    "description": "Ignore the website's robots.txt rules. Enterprise only — contact support@firecrawl.com to enable.",
+                    "description": "Ignore the website's robots.txt rules. Enterprise only \u2014 contact support@firecrawl.com to enable.",
                     "default": false
                   },
                   "robotsUserAgent": {
                     "type": "string",
-                    "description": "Custom User-Agent string for robots.txt evaluation. When set, robots.txt is fetched with this User-Agent and allow/disallow rules are matched against it instead of the default. Enterprise only — contact support@firecrawl.com to enable."
+                    "description": "Custom User-Agent string for robots.txt evaluation. When set, robots.txt is fetched with this User-Agent and allow/disallow rules are matched against it instead of the default. Enterprise only \u2014 contact support@firecrawl.com to enable."
                   },
                   "delay": {
                     "type": "number",
@@ -2093,11 +2198,18 @@
                         "description": "Type of events that should be sent to the webhook URL. (default: all)",
                         "items": {
                           "type": "string",
-                          "enum": ["completed", "page", "failed", "started"]
+                          "enum": [
+                            "completed",
+                            "page",
+                            "failed",
+                            "started"
+                          ]
                         }
                       }
                     },
-                    "required": ["url"]
+                    "required": [
+                      "url"
+                    ]
                   },
                   "scrapeOptions": {
                     "$ref": "#/components/schemas/ScrapeOptions"
@@ -2108,7 +2220,9 @@
                     "description": "If true, this will enable zero data retention for this crawl. To enable this feature, please contact help@firecrawl.dev"
                   }
                 },
-                "required": ["url"]
+                "required": [
+                  "url"
+                ]
               }
             }
           }
@@ -2179,7 +2293,9 @@
       "post": {
         "summary": "Preview crawl parameters generated from natural language prompt",
         "operationId": "crawlParamsPreview",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2203,7 +2319,10 @@
                     "description": "Natural language prompt describing what you want to crawl"
                   }
                 },
-                "required": ["url", "prompt"]
+                "required": [
+                  "url",
+                  "prompt"
+                ]
               }
             }
           }
@@ -2264,7 +2383,10 @@
                         },
                         "sitemap": {
                           "type": "string",
-                          "enum": ["skip", "include"],
+                          "enum": [
+                            "skip",
+                            "include"
+                          ],
                           "description": "Sitemap handling strategy"
                         },
                         "ignoreQueryParameters": {
@@ -2365,7 +2487,9 @@
       "post": {
         "summary": "Map multiple URLs based on options",
         "operationId": "mapUrls",
-        "tags": ["Mapping"],
+        "tags": [
+          "Mapping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2389,7 +2513,11 @@
                   },
                   "sitemap": {
                     "type": "string",
-                    "enum": ["skip", "include", "only"],
+                    "enum": [
+                      "skip",
+                      "include",
+                      "only"
+                    ],
                     "description": "Sitemap mode when mapping. If you set it to `skip`, the sitemap won't be used to find URLs. If you set it to `only`, only URLs that are in the sitemap will be returned. By default (`include`), the sitemap and other methods will be used together to find URLs.",
                     "default": "include"
                   },
@@ -2445,7 +2573,9 @@
                     "$ref": "#/components/schemas/ThreatProtectionOverride"
                   }
                 },
-                "required": ["url"]
+                "required": [
+                  "url"
+                ]
               },
               "examples": {
                 "example1": {
@@ -2460,7 +2590,9 @@
                     "limit": 5000,
                     "location": {
                       "country": "US",
-                      "languages": ["en-US"]
+                      "languages": [
+                        "en-US"
+                      ]
                     },
                     "timeout": 60000
                   }
@@ -2535,7 +2667,9 @@
       "post": {
         "summary": "Extract structured data from pages using LLMs",
         "operationId": "extractData",
-        "tags": ["Extraction"],
+        "tags": [
+          "Extraction"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2596,7 +2730,9 @@
                     "$ref": "#/components/schemas/ThreatProtectionOverride"
                   }
                 },
-                "required": ["urls"]
+                "required": [
+                  "urls"
+                ]
               }
             }
           }
@@ -2663,7 +2799,9 @@
       "get": {
         "summary": "Get the status of an extract job",
         "operationId": "getExtractStatus",
-        "tags": ["Extraction"],
+        "tags": [
+          "Extraction"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2687,7 +2825,9 @@
       "get": {
         "summary": "List agent runs",
         "operationId": "listAgents",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2757,7 +2897,11 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": ["processing", "completed", "failed"]
+                            "enum": [
+                              "processing",
+                              "completed",
+                              "failed"
+                            ]
                           },
                           "options": {
                             "type": "object",
@@ -2787,7 +2931,11 @@
                               },
                               "effort": {
                                 "type": "string",
-                                "enum": ["low", "medium", "high"],
+                                "enum": [
+                                  "low",
+                                  "medium",
+                                  "high"
+                                ],
                                 "description": "Reasoning budget used for the agent run (only present for runs that set effort)"
                               },
                               "safe": {
@@ -2809,7 +2957,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the before timestamp is invalid.",
+            "description": "Bad request \u2014 the before timestamp is invalid.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2829,7 +2977,9 @@
       "post": {
         "summary": "Start an agent task for agentic data extraction",
         "operationId": "startAgent",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -2869,13 +3019,21 @@
                   },
                   "model": {
                     "type": "string",
-                    "enum": ["spark-2", "spark-1-mini", "spark-1-pro"],
+                    "enum": [
+                      "spark-2",
+                      "spark-1-mini",
+                      "spark-1-pro"
+                    ],
                     "default": "spark-2",
                     "description": "The model to use for the agent task. spark-2 is the default and the model every run executes on. The Spark 1 model names remain accepted for backwards compatibility but are deprecated and route to spark-2."
                   },
                   "effort": {
                     "type": "string",
-                    "enum": ["low", "medium", "high"],
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high"
+                    ],
                     "description": "Reasoning budget for the agent task. Every run executes on spark-2, so effort can be sent with or without model."
                   },
                   "webhook": {
@@ -2923,7 +3081,9 @@
                         ]
                       }
                     },
-                    "required": ["url"]
+                    "required": [
+                      "url"
+                    ]
                   },
                   "auditMetadata": {
                     "$ref": "#/components/schemas/AuditMetadata"
@@ -2938,7 +3098,10 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": ["extract", "chat"],
+                    "enum": [
+                      "extract",
+                      "chat"
+                    ],
                     "default": "extract",
                     "description": "`extract` returns the complete structured result in `data` every turn. `chat` lets a follow-up that asks for no new data get a short reply in `message` instead of a re-run. `exchange.requireApproval` needs `chat` on the same request. Omitted on a follow-up turn keeps the thread's mode."
                   },
@@ -2946,7 +3109,9 @@
                     "type": "object",
                     "description": "Proxy country for every request the agent makes during the run: scrapes, batch scrapes and browser sessions go out from this country, and the agent cannot change it. Search results are localized to the country. Omitted on a follow-up turn keeps the thread's country. See [Choosing a location](https://docs.firecrawl.dev/features/agent#choosing-a-location).",
                     "additionalProperties": false,
-                    "required": ["country"],
+                    "required": [
+                      "country"
+                    ],
                     "properties": {
                       "country": {
                         "type": "string",
@@ -3012,7 +3177,9 @@
                             "description": "Stop asking for approval for the rest of the thread. Ignored on a `terms` approval."
                           }
                         },
-                        "required": ["approvalId"]
+                        "required": [
+                          "approvalId"
+                        ]
                       },
                       "decline": {
                         "type": "object",
@@ -3025,18 +3192,25 @@
                             "description": "The `pendingApproval.id` to answer."
                           }
                         },
-                        "required": ["approvalId"]
+                        "required": [
+                          "approvalId"
+                        ]
                       },
                       "onTermsRequired": {
                         "type": "string",
-                        "enum": ["skip", "ask"],
+                        "enum": [
+                          "skip",
+                          "ask"
+                        ],
                         "default": "skip",
                         "description": "What to do when a provider the agent would use needs data terms your team has not accepted. Such providers are never called. `skip` answers with accepted providers and lists the others in `exchange.skippedProviders`; `ask` also ends the turn with a `terms` `pendingApproval` and `exchange.requiresAction`. Omitted on a follow-up turn keeps the previous turn's value. See [Data providers that need terms](https://docs.firecrawl.dev/features/agent#data-providers-that-need-terms)."
                       }
                     }
                   }
                 },
-                "required": ["prompt"]
+                "required": [
+                  "prompt"
+                ]
               }
             }
           }
@@ -3071,7 +3245,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the request body failed validation (for example an invalid JSON schema).",
+            "description": "Bad request \u2014 the request body failed validation (for example an invalid JSON schema).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3103,7 +3277,7 @@
             }
           },
           "403": {
-            "description": "Forbidden — a provided URL is blocked by the team's threat protection policy.",
+            "description": "Forbidden \u2014 a provided URL is blocked by the team's threat protection policy.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3135,7 +3309,7 @@
             }
           },
           "500": {
-            "description": "Internal server error — the agent service could not be reached.",
+            "description": "Internal server error \u2014 the agent service could not be reached.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3169,7 +3343,9 @@
       "get": {
         "summary": "Get the status of an agent job",
         "operationId": "getAgentStatus",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3188,7 +3364,11 @@
                     },
                     "status": {
                       "type": "string",
-                      "enum": ["processing", "completed", "failed"]
+                      "enum": [
+                        "processing",
+                        "completed",
+                        "failed"
+                      ]
                     },
                     "data": {
                       "type": "object",
@@ -3203,7 +3383,9 @@
                     },
                     "stopReason": {
                       "type": "string",
-                      "enum": ["credit_limit_reached"],
+                      "enum": [
+                        "credit_limit_reached"
+                      ],
                       "description": "Why a failed run stopped early. `credit_limit_reached` means the run hit its `maxCredits` limit. Only present when status is failed."
                     },
                     "message": {
@@ -3212,13 +3394,21 @@
                     },
                     "model": {
                       "type": "string",
-                      "enum": ["spark-2", "spark-1-pro", "spark-1-mini"],
+                      "enum": [
+                        "spark-2",
+                        "spark-1-pro",
+                        "spark-1-mini"
+                      ],
                       "default": "spark-2",
                       "description": "Model preset used for the agent run. Every new run executes on spark-2; Spark 1 names only appear on legacy runs."
                     },
                     "effort": {
                       "type": "string",
-                      "enum": ["low", "medium", "high"],
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high"
+                      ],
                       "description": "Reasoning budget used for the agent run (only present for runs that set effort)"
                     },
                     "safe": {
@@ -3247,7 +3437,10 @@
                     },
                     "mode": {
                       "type": "string",
-                      "enum": ["extract", "chat"]
+                      "enum": [
+                        "extract",
+                        "chat"
+                      ]
                     },
                     "suggestions": {
                       "type": "array",
@@ -3276,7 +3469,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the job ID is not a valid UUID.",
+            "description": "Bad request \u2014 the job ID is not a valid UUID.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3312,7 +3505,9 @@
       "delete": {
         "summary": "Cancel an agent job",
         "operationId": "cancelAgent",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3335,7 +3530,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the job ID is not a valid UUID.",
+            "description": "Bad request \u2014 the job ID is not a valid UUID.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3367,7 +3562,7 @@
             }
           },
           "409": {
-            "description": "Conflict — the agent job has already finished or has already been cancelled.",
+            "description": "Conflict \u2014 the agent job has already finished or has already been cancelled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3401,7 +3596,9 @@
       "get": {
         "summary": "Get the execution trace of an agent job",
         "operationId": "getAgentTrace",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3415,7 +3612,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["true", "false"]
+              "enum": [
+                "true",
+                "false"
+              ]
             }
           }
         ],
@@ -3477,7 +3677,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the job ID is not a valid UUID, or the job did not run on spark-2 (traces are only available for spark-2 agent jobs).",
+            "description": "Bad request \u2014 the job ID is not a valid UUID, or the job did not run on spark-2 (traces are only available for spark-2 agent jobs).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3537,7 +3737,9 @@
       "get": {
         "summary": "Get an output snapshot of an agent job",
         "operationId": "getAgentSnapshot",
-        "tags": ["Agent"],
+        "tags": [
+          "Agent"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3564,7 +3766,7 @@
                     },
                     "snapshot": {
                       "type": "string",
-                      "description": "The snapshot content as a JSON-encoded string — the agent's working output artifact at that point in the run."
+                      "description": "The snapshot content as a JSON-encoded string \u2014 the agent's working output artifact at that point in the run."
                     }
                   }
                 }
@@ -3572,7 +3774,7 @@
             }
           },
           "400": {
-            "description": "Bad request — the job ID or snapshot ID is not a valid UUID, or the job did not run on spark-2 (snapshots are only available for spark-2 agent jobs).",
+            "description": "Bad request \u2014 the job ID or snapshot ID is not a valid UUID, or the job did not run on spark-2 (snapshots are only available for spark-2 agent jobs).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3610,7 +3812,9 @@
       "get": {
         "summary": "Get all active crawls for the authenticated team",
         "operationId": "getActiveCrawls",
-        "tags": ["Crawling"],
+        "tags": [
+          "Crawling"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3657,11 +3861,20 @@
                             }
                           }
                         },
-                        "required": ["id", "teamId", "url", "status", "options"]
+                        "required": [
+                          "id",
+                          "teamId",
+                          "url",
+                          "status",
+                          "options"
+                        ]
                       }
                     }
                   },
-                  "required": ["success", "data"]
+                  "required": [
+                    "success",
+                    "data"
+                  ]
                 }
               }
             }
@@ -3733,7 +3946,9 @@
       "get": {
         "summary": "Get remaining credits for the authenticated team",
         "operationId": "getCreditUsage",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3832,7 +4047,9 @@
       "get": {
         "summary": "Get historical credit usage for the authenticated team",
         "operationId": "getHistoricalCreditUsage",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -3924,7 +4141,9 @@
       "get": {
         "summary": "Get remaining tokens for the authenticated team (Extract only)",
         "operationId": "getTokenUsage",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4023,7 +4242,9 @@
       "get": {
         "summary": "Get historical token usage for the authenticated team (Extract only)",
         "operationId": "getHistoricalTokenUsage",
-        "tags": ["Billing"],
+        "tags": [
+          "Billing"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4115,7 +4336,9 @@
       "get": {
         "summary": "Metrics about your team's scrape queue",
         "operationId": "getQueueStatus",
-        "tags": ["Miscellaneous"],
+        "tags": [
+          "Miscellaneous"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4168,7 +4391,9 @@
         "summary": "List recent API activity",
         "operationId": "getActivity",
         "description": "Lists your team's recent API activity from the last 24 hours. Returns metadata about each job including the job ID, which can be used with the corresponding GET endpoint (e.g. GET /crawl/{id}) to retrieve full results. Supports cursor-based pagination and filtering by endpoint.",
-        "tags": ["Account"],
+        "tags": [
+          "Account"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4296,7 +4521,9 @@
       "post": {
         "summary": "Search and optionally scrape search results",
         "operationId": "searchAndScrape",
-        "tags": ["Search"],
+        "tags": [
+          "Search"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4331,7 +4558,9 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["web"]
+                              "enum": [
+                                "web"
+                              ]
                             },
                             "tbs": {
                               "type": "string",
@@ -4342,7 +4571,9 @@
                               "description": "Location parameter for search results"
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4350,10 +4581,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["images"]
+                              "enum": [
+                                "images"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4361,10 +4596,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["news"]
+                              "enum": [
+                                "news"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4372,10 +4611,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["alexandria"]
+                              "enum": [
+                                "alexandria"
+                              ]
                             }
                           },
-                          "required": ["type"],
+                          "required": [
+                            "type"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -4384,10 +4627,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["skills"]
+                              "enum": [
+                                "skills"
+                              ]
                             }
                           },
-                          "required": ["type"],
+                          "required": [
+                            "type"
+                          ],
                           "additionalProperties": false
                         }
                       ]
@@ -4405,7 +4652,11 @@
                   },
                   "toolDetail": {
                     "type": "string",
-                    "enum": ["compact", "summary", "full"],
+                    "enum": [
+                      "compact",
+                      "summary",
+                      "full"
+                    ],
                     "default": "compact",
                     "description": "How much of each tool contract to return in `data.tools`. `compact` returns only `provider`, `capability`, and `description`. `summary` returns the full tool entry without `options` and `response`. `full` also returns `options`, `response`, and `examples`."
                   },
@@ -4419,10 +4670,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["developer"]
+                              "enum": [
+                                "developer"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4430,10 +4685,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["gov"]
+                              "enum": [
+                                "gov"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4441,10 +4700,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["research"]
+                              "enum": [
+                                "research"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         },
                         {
                           "type": "object",
@@ -4452,10 +4715,14 @@
                           "properties": {
                             "type": {
                               "type": "string",
-                              "enum": ["pdf"]
+                              "enum": [
+                                "pdf"
+                              ]
                             }
                           },
-                          "required": ["type"]
+                          "required": [
+                            "type"
+                          ]
                         }
                       ]
                     },
@@ -4513,7 +4780,10 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": ["anon", "zdr"]
+                      "enum": [
+                        "anon",
+                        "zdr"
+                      ]
                     },
                     "description": "Enterprise search options for Zero Data Retention (ZDR). Use `[\"zdr\"]` for end-to-end ZDR (10 credits / 10 results) or `[\"anon\"]` for anonymized ZDR (2 credits / 10 results). Must be enabled for your team."
                   },
@@ -4530,7 +4800,9 @@
                     "$ref": "#/components/schemas/ThreatProtectionOverride"
                   }
                 },
-                "required": ["query"]
+                "required": [
+                  "query"
+                ]
               }
             }
           }
@@ -4787,7 +5059,12 @@
                           "description": "Short skill cards from the Alexandria catalogue. Present when `skills` is among the sources, including when nothing matched or the lookup failed. At most 3 cards. Free, and never counted in `creditsUsed`.",
                           "items": {
                             "type": "object",
-                            "required": ["id", "name", "description", "source"],
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "source"
+                            ],
                             "properties": {
                               "id": {
                                 "type": "string",
@@ -4801,7 +5078,10 @@
                               },
                               "source": {
                                 "type": "string",
-                                "enum": ["official", "provider"]
+                                "enum": [
+                                  "official",
+                                  "provider"
+                                ]
                               },
                               "provider": {
                                 "type": "string",
@@ -4886,7 +5166,9 @@
       "post": {
         "summary": "Create an interact session",
         "operationId": "createBrowserSession",
-        "tags": ["Interact"],
+        "tags": [
+          "Interact"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -4938,7 +5220,9 @@
                         "description": "When true, browser state is saved back to the profile on close. Set to false to load existing data without writing. Multiple non-saving sessions are allowed but only one saving session at a time."
                       }
                     },
-                    "required": ["name"]
+                    "required": [
+                      "name"
+                    ]
                   },
                   "location": {
                     "type": "object",
@@ -4950,7 +5234,9 @@
                         "example": "GB"
                       }
                     },
-                    "required": ["country"],
+                    "required": [
+                      "country"
+                    ],
                     "additionalProperties": false
                   }
                 }
@@ -5016,7 +5302,9 @@
       "get": {
         "summary": "List interact sessions",
         "operationId": "listBrowserSessions",
-        "tags": ["Interact"],
+        "tags": [
+          "Interact"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5029,7 +5317,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["active", "destroyed"]
+              "enum": [
+                "active",
+                "destroyed"
+              ]
             },
             "description": "Filter sessions by status"
           }
@@ -5055,7 +5346,10 @@
                           },
                           "status": {
                             "type": "string",
-                            "enum": ["active", "destroyed"]
+                            "enum": [
+                              "active",
+                              "destroyed"
+                            ]
                           },
                           "cdpUrl": {
                             "type": "string"
@@ -5109,7 +5403,9 @@
       "post": {
         "summary": "Execute code in an interact session",
         "operationId": "executeBrowserCode",
-        "tags": ["Interact"],
+        "tags": [
+          "Interact"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5132,7 +5428,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["code"],
+                "required": [
+                  "code"
+                ],
                 "properties": {
                   "code": {
                     "type": "string",
@@ -5142,7 +5440,11 @@
                   },
                   "language": {
                     "type": "string",
-                    "enum": ["python", "node", "bash"],
+                    "enum": [
+                      "python",
+                      "node",
+                      "bash"
+                    ],
                     "default": "node",
                     "description": "Language of the code to execute. Use `node` for JavaScript or `bash` for agent-browser CLI commands."
                   },
@@ -5225,7 +5527,9 @@
       "delete": {
         "summary": "Delete an interact session",
         "operationId": "deleteBrowserSession",
-        "tags": ["Interact"],
+        "tags": [
+          "Interact"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5301,7 +5605,9 @@
       "get": {
         "summary": "Get the status of a scrape job",
         "operationId": "getScrapeStatus",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5382,7 +5688,10 @@
       "post": {
         "summary": "Submit feedback for a search job",
         "operationId": "submitSearchFeedback",
-        "tags": ["Search", "Feedback"],
+        "tags": [
+          "Search",
+          "Feedback"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5479,7 +5788,9 @@
         "summary": "Ask the Firecrawl support agent",
         "description": "Diagnose Firecrawl job, account, and API usage issues with an AI support agent.",
         "operationId": "askSupportAgent",
-        "tags": ["Support"],
+        "tags": [
+          "Support"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5554,7 +5865,9 @@
         "summary": "Search Firecrawl docs with citations",
         "description": "Answer Firecrawl documentation questions using the public docs corpus.",
         "operationId": "searchSupportDocs",
-        "tags": ["Support"],
+        "tags": [
+          "Support"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5628,7 +5941,9 @@
       "get": {
         "summary": "Search papers",
         "operationId": "researchSearchPapers",
-        "tags": ["Research"],
+        "tags": [
+          "Research"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5711,7 +6026,9 @@
                       "paperId": "2014215642691656232",
                       "primaryId": "arxiv:2105.05233",
                       "ids": {
-                        "arxiv": ["2105.05233"]
+                        "arxiv": [
+                          "2105.05233"
+                        ]
                       },
                       "title": "Diffusion Models Beat GANs on Image Synthesis",
                       "abstract": "We show that diffusion models can achieve image sample quality superior to the current state-of-the-art generative models...",
@@ -5741,7 +6058,9 @@
       "get": {
         "summary": "Inspect or read a paper",
         "operationId": "researchGetPaper",
-        "tags": ["Research"],
+        "tags": [
+          "Research"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5810,12 +6129,16 @@
                   "paper": {
                     "paperId": "2014215642691656232",
                     "ids": {
-                      "arxiv": ["2105.05233"]
+                      "arxiv": [
+                        "2105.05233"
+                      ]
                     },
                     "title": "Diffusion Models Beat GANs on Image Synthesis",
                     "abstract": "We show that diffusion models can achieve image sample quality superior to the current state-of-the-art generative models...",
                     "authors": "Prafulla Dhariwal, Alexander Nichol",
-                    "categories": ["cs.LG"],
+                    "categories": [
+                      "cs.LG"
+                    ],
                     "createdDate": "Wed, 11 May 2021 18:01:01 GMT",
                     "updateDate": "2021-06-01"
                   }
@@ -5845,7 +6168,9 @@
       "get": {
         "summary": "Find related papers",
         "operationId": "researchRelatedPapers",
-        "tags": ["Research"],
+        "tags": [
+          "Research"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -5888,7 +6213,11 @@
             "description": "Structural expansion mode.",
             "schema": {
               "type": "string",
-              "enum": ["similar", "citers", "references"],
+              "enum": [
+                "similar",
+                "citers",
+                "references"
+              ],
               "default": "similar"
             }
           },
@@ -5938,7 +6267,9 @@
                       "paperId": "482107036680302043",
                       "primaryId": "arxiv:2006.11239",
                       "ids": {
-                        "arxiv": ["2006.11239"]
+                        "arxiv": [
+                          "2006.11239"
+                        ]
                       },
                       "title": "Denoising Diffusion Probabilistic Models",
                       "abstract": "We present high quality image synthesis results using diffusion probabilistic models...",
@@ -5976,7 +6307,9 @@
       "get": {
         "summary": "Search the developer index",
         "operationId": "developerSearch",
-        "tags": ["Developer"],
+        "tags": [
+          "Developer"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6014,7 +6347,12 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["doc", "issue", "pull_request", "readme"]
+                "enum": [
+                  "doc",
+                  "issue",
+                  "pull_request",
+                  "readme"
+                ]
               }
             }
           },
@@ -6052,7 +6390,9 @@
             "description": "Set to `only` to limit the search to indexed agent-skill files.",
             "schema": {
               "type": "string",
-              "enum": ["only"]
+              "enum": [
+                "only"
+              ]
             }
           },
           {
@@ -6180,7 +6520,9 @@
       "post": {
         "summary": "Search the developer index",
         "operationId": "developerSearchPost",
-        "tags": ["Developer"],
+        "tags": [
+          "Developer"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6192,7 +6534,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["query"],
+                "required": [
+                  "query"
+                ],
                 "properties": {
                   "query": {
                     "type": "string",
@@ -6208,7 +6552,12 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": ["doc", "issue", "pull_request", "readme"]
+                      "enum": [
+                        "doc",
+                        "issue",
+                        "pull_request",
+                        "readme"
+                      ]
                     }
                   },
                   "repos": {
@@ -6231,7 +6580,9 @@
                   "skills": {
                     "type": "string",
                     "description": "Set to `only` to limit the search to indexed agent-skill files.",
-                    "enum": ["only"]
+                    "enum": [
+                      "only"
+                    ]
                   },
                   "passages": {
                     "type": "integer",
@@ -6277,7 +6628,10 @@
               "example": {
                 "query": "how do I configure retries",
                 "k": 10,
-                "types": ["issue", "pull_request"]
+                "types": [
+                  "issue",
+                  "pull_request"
+                ]
               }
             }
           }
@@ -6313,7 +6667,9 @@
         "summary": "Search the Government Index",
         "operationId": "govSearch",
         "description": "Filters keep only pages the index has labeled, so a filtered search can leave out relevant pages, and no results does not mean none exist. Court labels are most complete for federal courts and case-law collections.",
-        "tags": ["Government"],
+        "tags": [
+          "Government"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6389,11 +6745,11 @@
             "name": "cites",
             "in": "query",
             "required": false,
-            "description": "Keep only pages that cite one law or case, as a printed citation such as `42 U.S.C. § 1983` or `5 U.S. 137`, or a citation id such as `us:usc:42:1983`.",
+            "description": "Keep only pages that cite one law or case, as a printed citation such as `42 U.S.C. \u00a7 1983` or `5 U.S. 137`, or a citation id such as `us:usc:42:1983`.",
             "schema": {
               "type": "string",
               "minLength": 1,
-              "example": "42 U.S.C. § 1983"
+              "example": "42 U.S.C. \u00a7 1983"
             }
           },
           {
@@ -6453,7 +6809,9 @@
         "summary": "Search the Government Index",
         "operationId": "govSearchPost",
         "description": "Filters keep only pages the index has labeled, so a filtered search can leave out relevant pages, and no results does not mean none exist. Court labels are most complete for federal courts and case-law collections.",
-        "tags": ["Government"],
+        "tags": [
+          "Government"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6465,7 +6823,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["query"],
+                "required": [
+                  "query"
+                ],
                 "additionalProperties": false,
                 "properties": {
                   "query": {
@@ -6511,8 +6871,8 @@
                   "cites": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "Keep only pages that cite one law or case, as a printed citation such as `42 U.S.C. § 1983` or `5 U.S. 137`, or a citation id such as `us:usc:42:1983`.",
-                    "example": "42 U.S.C. § 1983"
+                    "description": "Keep only pages that cite one law or case, as a printed citation such as `42 U.S.C. \u00a7 1983` or `5 U.S. 137`, or a citation id such as `us:usc:42:1983`.",
+                    "example": "42 U.S.C. \u00a7 1983"
                   },
                   "domain": {
                     "type": "string",
@@ -6562,7 +6922,9 @@
       "post": {
         "summary": "Submit feedback for a v2 job",
         "operationId": "submitEndpointFeedback",
-        "tags": ["Feedback"],
+        "tags": [
+          "Feedback"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6646,7 +7008,9 @@
       "get": {
         "summary": "Get the team's threat protection policy",
         "operationId": "getThreatProtection",
-        "tags": ["Threat Protection"],
+        "tags": [
+          "Threat Protection"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6669,7 +7033,10 @@
                       "properties": {
                         "mode": {
                           "type": "string",
-                          "enum": ["off", "normal"],
+                          "enum": [
+                            "off",
+                            "normal"
+                          ],
                           "description": "Threat protection mode. `off` disables checks; `normal` checks URLs against Google Web Risk (+2 credits per URL scanned).",
                           "example": "normal"
                         },
@@ -6686,7 +7053,9 @@
                             "type": "string"
                           },
                           "description": "Exact domains or globs (e.g. `*.example.com`) always blocked, without a classifier call.",
-                          "example": ["*.risky.example"]
+                          "example": [
+                            "*.risky.example"
+                          ]
                         },
                         "whitelist": {
                           "type": "array",
@@ -6694,7 +7063,9 @@
                             "type": "string"
                           },
                           "description": "Exact domains or globs always allowed. Wins over every other rule.",
-                          "example": ["*.trusted.example"]
+                          "example": [
+                            "*.trusted.example"
+                          ]
                         },
                         "blockedTlds": {
                           "type": "array",
@@ -6702,11 +7073,16 @@
                             "type": "string"
                           },
                           "description": "Top-level domains to block outright, lowercase without a leading dot.",
-                          "example": ["zip"]
+                          "example": [
+                            "zip"
+                          ]
                         },
                         "failurePolicy": {
                           "type": "string",
-                          "enum": ["open", "closed"],
+                          "enum": [
+                            "open",
+                            "closed"
+                          ],
                           "description": "Behavior when the classifier is unreachable: `closed` blocks (default), `open` allows.",
                           "example": "closed"
                         },
@@ -6741,7 +7117,9 @@
         "summary": "Update the team's threat protection policy",
         "description": "Full-document update. Unspecified fields reset to defaults. Enterprise feature, team admins only.",
         "operationId": "updateThreatProtection",
-        "tags": ["Threat Protection"],
+        "tags": [
+          "Threat Protection"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -6753,11 +7131,16 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["mode"],
+                "required": [
+                  "mode"
+                ],
                 "properties": {
                   "mode": {
                     "type": "string",
-                    "enum": ["off", "normal"],
+                    "enum": [
+                      "off",
+                      "normal"
+                    ],
                     "description": "Threat protection mode. `off` disables checks; `normal` checks URLs against Google Web Risk (+2 credits per URL scanned).",
                     "example": "normal"
                   },
@@ -6774,7 +7157,9 @@
                       "type": "string"
                     },
                     "description": "Exact domains or globs (e.g. `*.example.com`) always blocked, without a classifier call.",
-                    "example": ["*.risky.example"]
+                    "example": [
+                      "*.risky.example"
+                    ]
                   },
                   "whitelist": {
                     "type": "array",
@@ -6782,7 +7167,9 @@
                       "type": "string"
                     },
                     "description": "Exact domains or globs always allowed. Wins over every other rule.",
-                    "example": ["*.trusted.example"]
+                    "example": [
+                      "*.trusted.example"
+                    ]
                   },
                   "blockedTlds": {
                     "type": "array",
@@ -6790,11 +7177,16 @@
                       "type": "string"
                     },
                     "description": "Top-level domains to block outright, lowercase without a leading dot.",
-                    "example": ["zip"]
+                    "example": [
+                      "zip"
+                    ]
                   },
                   "failurePolicy": {
                     "type": "string",
-                    "enum": ["open", "closed"],
+                    "enum": [
+                      "open",
+                      "closed"
+                    ],
                     "description": "Behavior when the classifier is unreachable: `closed` blocks (default), `open` allows.",
                     "example": "closed"
                   },
@@ -6825,7 +7217,10 @@
                       "properties": {
                         "mode": {
                           "type": "string",
-                          "enum": ["off", "normal"],
+                          "enum": [
+                            "off",
+                            "normal"
+                          ],
                           "description": "Threat protection mode. `off` disables checks; `normal` checks URLs against Google Web Risk (+2 credits per URL scanned).",
                           "example": "normal"
                         },
@@ -6842,7 +7237,9 @@
                             "type": "string"
                           },
                           "description": "Exact domains or globs (e.g. `*.example.com`) always blocked, without a classifier call.",
-                          "example": ["*.risky.example"]
+                          "example": [
+                            "*.risky.example"
+                          ]
                         },
                         "whitelist": {
                           "type": "array",
@@ -6850,7 +7247,9 @@
                             "type": "string"
                           },
                           "description": "Exact domains or globs always allowed. Wins over every other rule.",
-                          "example": ["*.trusted.example"]
+                          "example": [
+                            "*.trusted.example"
+                          ]
                         },
                         "blockedTlds": {
                           "type": "array",
@@ -6858,11 +7257,16 @@
                             "type": "string"
                           },
                           "description": "Top-level domains to block outright, lowercase without a leading dot.",
-                          "example": ["zip"]
+                          "example": [
+                            "zip"
+                          ]
                         },
                         "failurePolicy": {
                           "type": "string",
-                          "enum": ["open", "closed"],
+                          "enum": [
+                            "open",
+                            "closed"
+                          ],
                           "description": "Behavior when the classifier is unreachable: `closed` blocks (default), `open` allows.",
                           "example": "closed"
                         },
@@ -6902,7 +7306,9 @@
         "summary": "List the saved versions of a page",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "listSnapshots",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7027,7 +7433,9 @@
         "summary": "Diff two saved versions of a page",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "diffSnapshots",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7068,7 +7476,10 @@
                     },
                     "changeStatus": {
                       "type": "string",
-                      "enum": ["same", "changed"]
+                      "enum": [
+                        "same",
+                        "changed"
+                      ]
                     },
                     "from": {
                       "$ref": "#/components/schemas/Snapshot"
@@ -7157,7 +7568,9 @@
         "summary": "Get a saved version of a page",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "getSnapshot",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7270,7 +7683,9 @@
         "summary": "Create a watch",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "createWatch",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7359,7 +7774,10 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["url", "schedule"],
+                "required": [
+                  "url",
+                  "schedule"
+                ],
                 "properties": {
                   "url": {
                     "type": "string"
@@ -7377,7 +7795,9 @@
                             "default": "UTC"
                           }
                         },
-                        "required": ["cron"]
+                        "required": [
+                          "cron"
+                        ]
                       },
                       {
                         "type": "object",
@@ -7386,13 +7806,17 @@
                             "type": "integer"
                           }
                         },
-                        "required": ["everySeconds"]
+                        "required": [
+                          "everySeconds"
+                        ]
                       }
                     ]
                   },
                   "webhook": {
                     "type": "object",
-                    "required": ["url"],
+                    "required": [
+                      "url"
+                    ],
                     "properties": {
                       "url": {
                         "type": "string"
@@ -7413,8 +7837,42 @@
                     "type": "array",
                     "items": {
                       "type": "string",
-                      "enum": ["new", "same", "changed", "removed"]
+                      "enum": [
+                        "new",
+                        "same",
+                        "changed",
+                        "removed"
+                      ]
                     }
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "scrapeOptions": {
+                    "type": "object"
+                  },
+                  "focus": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      },
+                      "maxTokens": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 200000
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ]
+                  },
+                  "extractRules": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true
                   }
                 }
               }
@@ -7426,7 +7884,9 @@
         "summary": "List watches",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "listWatches",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7519,7 +7979,9 @@
         "summary": "Get a watch",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "getWatch",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7618,7 +8080,9 @@
         "summary": "Delete a watch",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "deleteWatch",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7709,6 +8173,126 @@
             }
           }
         ]
+      },
+      "patch": {
+        "summary": "Update a watch",
+        "description": "Update schedule, enabled state, webhook, notifyOn, scrapeOptions, focus, or extractRules. Updating extractRules resets the saved extracted baseline.",
+        "parameters": [
+          {
+            "name": "watchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "schedule": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "cron": {
+                            "type": "string"
+                          },
+                          "timezone": {
+                            "type": "string",
+                            "default": "UTC"
+                          }
+                        },
+                        "required": [
+                          "cron"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "everySeconds": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "everySeconds"
+                        ]
+                      }
+                    ]
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "webhook": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "notifyOn": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "new",
+                        "same",
+                        "changed",
+                        "removed"
+                      ]
+                    }
+                  },
+                  "scrapeOptions": {
+                    "type": "object",
+                    "nullable": true
+                  },
+                  "focus": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      },
+                      "maxTokens": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 200000
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ]
+                  },
+                  "extractRules": {
+                    "type": "object",
+                    "nullable": true,
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated watch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid update payload or watch ID"
+          },
+          "404": {
+            "description": "Watch not found"
+          }
+        }
       }
     },
     "/watch/{watchId}/run": {
@@ -7716,7 +8300,9 @@
         "summary": "Run a watch now",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "runWatch",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7817,7 +8403,9 @@
         "summary": "List a watch's recent runs",
         "description": "Self-hosted only: available when the local snapshot store is enabled.",
         "operationId": "listWatchRuns",
-        "tags": ["Scraping"],
+        "tags": [
+          "Scraping"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -7926,6 +8514,93 @@
           }
         ]
       }
+    },
+    "/profiles": {
+      "get": {
+        "summary": "List local browser profiles",
+        "responses": {
+          "200": {
+            "description": "Saved local browser profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "profiles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "cookieCount": {
+                            "type": "integer"
+                          },
+                          "originCount": {
+                            "type": "integer"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/profiles/{name}": {
+      "get": {
+        "summary": "Get a local browser profile",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile details"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a local browser profile",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile deleted"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7952,7 +8627,9 @@
         "type": "object",
         "description": "User attribution included with SIEM logging events when SIEM Logging is enabled for the organization.",
         "additionalProperties": false,
-        "required": ["username"],
+        "required": [
+          "username"
+        ],
         "properties": {
           "username": {
             "type": "string",
@@ -7964,7 +8641,11 @@
       "AgentTraceAgent": {
         "type": "object",
         "description": "Identity of the agent that emitted the event.",
-        "required": ["id", "role", "name"],
+        "required": [
+          "id",
+          "role",
+          "name"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -7972,7 +8653,11 @@
           },
           "role": {
             "type": "string",
-            "enum": ["orchestrator", "subagent", "system"]
+            "enum": [
+              "orchestrator",
+              "subagent",
+              "system"
+            ]
           },
           "name": {
             "type": "string"
@@ -7987,7 +8672,12 @@
       "AgentTraceError": {
         "type": "object",
         "description": "Structured error attached to terminal and error events.",
-        "required": ["code", "source", "retryable", "message"],
+        "required": [
+          "code",
+          "source",
+          "retryable",
+          "message"
+        ],
         "properties": {
           "code": {
             "type": "string",
@@ -8001,7 +8691,12 @@
           },
           "source": {
             "type": "string",
-            "enum": ["agent", "tool", "billing", "system"]
+            "enum": [
+              "agent",
+              "tool",
+              "billing",
+              "system"
+            ]
           },
           "retryable": {
             "type": "boolean"
@@ -8014,11 +8709,22 @@
       "AgentTraceArtifact": {
         "type": "object",
         "description": "Descriptor for a change to an output artifact.",
-        "required": ["kind", "artifactId", "snapshotId", "change"],
+        "required": [
+          "kind",
+          "artifactId",
+          "snapshotId",
+          "change"
+        ],
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["json", "markdown", "html", "screenshot", "text"]
+            "enum": [
+              "json",
+              "markdown",
+              "html",
+              "screenshot",
+              "text"
+            ]
           },
           "artifactId": {
             "type": "string"
@@ -8034,7 +8740,13 @@
           },
           "change": {
             "type": "string",
-            "enum": ["init", "partial", "append", "modify", "update"]
+            "enum": [
+              "init",
+              "partial",
+              "append",
+              "modify",
+              "update"
+            ]
           },
           "changedFields": {
             "type": "array",
@@ -8069,7 +8781,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8094,7 +8808,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["run.started"],
+                "enum": [
+                  "run.started"
+                ],
                 "description": "Emitted when the run starts."
               }
             }
@@ -8115,7 +8831,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8140,12 +8858,16 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["run.cancel_requested"],
+                "enum": [
+                  "run.cancel_requested"
+                ],
                 "description": "Emitted when cancellation is requested (via DELETE /agent/{jobId})."
               },
               "reason": {
                 "type": "string",
-                "enum": ["user"]
+                "enum": [
+                  "user"
+                ]
               }
             }
           },
@@ -8166,7 +8888,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8191,7 +8915,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["run.finished"],
+                "enum": [
+                  "run.finished"
+                ],
                 "description": "Terminal event for the run."
               },
               "outcome": {
@@ -8231,7 +8957,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8256,7 +8984,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["agent.started"],
+                "enum": [
+                  "agent.started"
+                ],
                 "description": "Emitted when an agent (orchestrator or subagent) starts."
               }
             }
@@ -8279,7 +9009,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8304,12 +9036,19 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["agent.finished"],
+                "enum": [
+                  "agent.finished"
+                ],
                 "description": "Emitted when an agent finishes."
               },
               "outcome": {
                 "type": "string",
-                "enum": ["succeeded", "failed", "cancelled", "refused"]
+                "enum": [
+                  "succeeded",
+                  "failed",
+                  "cancelled",
+                  "refused"
+                ]
               },
               "durationMs": {
                 "type": "integer"
@@ -8342,7 +9081,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8367,7 +9108,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["browser.session.started"],
+                "enum": [
+                  "browser.session.started"
+                ],
                 "description": "Emitted when a browser session starts."
               },
               "sessionId": {
@@ -8392,7 +9135,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8417,7 +9162,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["browser.session.finished"],
+                "enum": [
+                  "browser.session.finished"
+                ],
                 "description": "Emitted when a browser session finishes."
               },
               "sessionId": {
@@ -8445,7 +9192,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8470,12 +9219,18 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["progress.reported"],
+                "enum": [
+                  "progress.reported"
+                ],
                 "description": "Emitted when the orchestrator reports progress."
               },
               "phase": {
                 "type": "string",
-                "enum": ["planning", "working", "finalizing"]
+                "enum": [
+                  "planning",
+                  "working",
+                  "finalizing"
+                ]
               },
               "message": {
                 "type": "string"
@@ -8498,7 +9253,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8523,7 +9280,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["reasoning.summary"],
+                "enum": [
+                  "reasoning.summary"
+                ],
                 "description": "A summary of the agent's reasoning."
               },
               "text": {
@@ -8549,7 +9308,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8574,7 +9335,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["tool_call.started"],
+                "enum": [
+                  "tool_call.started"
+                ],
                 "description": "Emitted when a tool call starts."
               },
               "toolCallId": {
@@ -8606,7 +9369,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8631,7 +9396,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["tool_call.finished"],
+                "enum": [
+                  "tool_call.finished"
+                ],
                 "description": "Emitted when a tool call finishes."
               },
               "toolCallId": {
@@ -8661,7 +9428,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8686,7 +9455,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["artifact.updated"],
+                "enum": [
+                  "artifact.updated"
+                ],
                 "description": "Emitted when an output artifact changes."
               },
               "artifact": {
@@ -8710,7 +9481,9 @@
             "properties": {
               "schemaVersion": {
                 "type": "integer",
-                "enum": [1]
+                "enum": [
+                  1
+                ]
               },
               "eventId": {
                 "type": "string",
@@ -8735,7 +9508,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["error.occurred"],
+                "enum": [
+                  "error.occurred"
+                ],
                 "description": "Emitted when a non-fatal error occurs during the run."
               },
               "error": {
@@ -8805,11 +9580,16 @@
             "description": "Monitor webhook events to receive. Defaults to all monitor events.",
             "items": {
               "type": "string",
-              "enum": ["monitor.page", "monitor.check.completed"]
+              "enum": [
+                "monitor.page",
+                "monitor.check.completed"
+              ]
             }
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       },
       "MonitorNotification": {
         "type": "object",
@@ -8851,7 +9631,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["scrape"]
+                "enum": [
+                  "scrape"
+                ]
               },
               "urls": {
                 "type": "array",
@@ -8865,7 +9647,10 @@
                 "$ref": "#/components/schemas/ScrapeOptions"
               }
             },
-            "required": ["type", "urls"]
+            "required": [
+              "type",
+              "urls"
+            ]
           },
           {
             "type": "object",
@@ -8878,7 +9663,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["crawl"]
+                "enum": [
+                  "crawl"
+                ]
               },
               "url": {
                 "type": "string",
@@ -8892,7 +9679,10 @@
                 "$ref": "#/components/schemas/ScrapeOptions"
               }
             },
-            "required": ["type", "url"]
+            "required": [
+              "type",
+              "url"
+            ]
           },
           {
             "type": "object",
@@ -8906,7 +9696,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["search"]
+                "enum": [
+                  "search"
+                ]
               },
               "queries": {
                 "type": "array",
@@ -8921,9 +9713,16 @@
               },
               "searchWindow": {
                 "type": "string",
-                "enum": ["5m", "15m", "1h", "6h", "24h", "7d"],
+                "enum": [
+                  "5m",
+                  "15m",
+                  "1h",
+                  "6h",
+                  "24h",
+                  "7d"
+                ],
                 "default": "24h",
-                "description": "Recency filter — only consider results published within this window."
+                "description": "Recency filter \u2014 only consider results published within this window."
               },
               "maxResults": {
                 "type": "integer",
@@ -8949,7 +9748,10 @@
                 "description": "Optional. Drop results from these domains."
               }
             },
-            "required": ["type", "queries"]
+            "required": [
+              "type",
+              "queries"
+            ]
           }
         ]
       },
@@ -8994,7 +9796,11 @@
             "description": "Whether to judge changed pages against `goal`. Requires a non-empty `goal` to run."
           }
         },
-        "required": ["name", "schedule", "targets"]
+        "required": [
+          "name",
+          "schedule",
+          "targets"
+        ]
       },
       "MonitorUpdateRequest": {
         "type": "object",
@@ -9038,7 +9844,10 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "paused"]
+            "enum": [
+              "active",
+              "paused"
+            ]
           }
         }
       },
@@ -9077,7 +9886,11 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "paused", "deleted"]
+            "enum": [
+              "active",
+              "paused",
+              "deleted"
+            ]
           },
           "schedule": {
             "type": "object",
@@ -9170,7 +9983,10 @@
           },
           "trigger": {
             "type": "string",
-            "enum": ["scheduled", "manual"]
+            "enum": [
+              "scheduled",
+              "manual"
+            ]
           },
           "scheduledFor": {
             "type": "string",
@@ -9245,7 +10061,13 @@
           },
           "status": {
             "type": "string",
-            "enum": ["same", "new", "changed", "removed", "error"]
+            "enum": [
+              "same",
+              "new",
+              "changed",
+              "removed",
+              "error"
+            ]
           },
           "previousScrapeId": {
             "type": "string",
@@ -9315,7 +10137,11 @@
           },
           "confidence": {
             "type": "string",
-            "enum": ["high", "medium", "low"]
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
           },
           "reason": {
             "type": "string"
@@ -9328,7 +10154,11 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["added", "removed", "changed"]
+                  "enum": [
+                    "added",
+                    "removed",
+                    "changed"
+                  ]
                 },
                 "before": {
                   "type": "string",
@@ -9446,10 +10276,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["markdown"]
+                  "enum": [
+                    "markdown"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9457,10 +10291,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["summary"]
+                  "enum": [
+                    "summary"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9468,10 +10306,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["html"]
+                  "enum": [
+                    "html"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9479,10 +10321,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["rawHtml"]
+                  "enum": [
+                    "rawHtml"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9490,10 +10336,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["rawBase64"]
+                  "enum": [
+                    "rawBase64"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9501,10 +10351,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["links"]
+                  "enum": [
+                    "links"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9512,10 +10366,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["images"]
+                  "enum": [
+                    "images"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9524,7 +10382,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["attributes"]
+                  "enum": [
+                    "attributes"
+                  ]
                 },
                 "selectors": {
                   "type": "array",
@@ -9541,12 +10401,18 @@
                         "description": "Attribute name to extract (for example `data-vehicle-name` or `id`)."
                       }
                     },
-                    "required": ["selector", "attribute"],
+                    "required": [
+                      "selector",
+                      "attribute"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["type", "selectors"]
+              "required": [
+                "type",
+                "selectors"
+              ]
             },
             {
               "type": "object",
@@ -9554,7 +10420,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["screenshot"]
+                  "enum": [
+                    "screenshot"
+                  ]
                 },
                 "fullPage": {
                   "type": "boolean",
@@ -9577,10 +10445,15 @@
                       "description": "The height of the viewport in pixels"
                     }
                   },
-                  "required": ["width", "height"]
+                  "required": [
+                    "width",
+                    "height"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9588,7 +10461,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["json"]
+                  "enum": [
+                    "json"
+                  ]
                 },
                 "schema": {
                   "type": "object",
@@ -9605,7 +10480,9 @@
                   "default": false
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9613,13 +10490,18 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["changeTracking"]
+                  "enum": [
+                    "changeTracking"
+                  ]
                 },
                 "modes": {
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": ["git-diff", "json"]
+                    "enum": [
+                      "git-diff",
+                      "json"
+                    ]
                   },
                   "description": "The mode to use for change tracking. 'git-diff' provides a detailed diff, and 'json' compares extracted JSON data."
                 },
@@ -9642,7 +10524,9 @@
                   "description": "Self-hosted snapshot store only. Compare against the page as it was at this point instead of the previous scrape: an ISO 8601 timestamp, or an age such as `30m`, `24h`, `7d` or `2w`. If history starts later, the oldest snapshot is used."
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9650,10 +10534,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["branding"]
+                  "enum": [
+                    "branding"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9661,10 +10549,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["product"]
+                  "enum": [
+                    "product"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9672,10 +10564,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["menu"]
+                  "enum": [
+                    "menu"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9684,10 +10580,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["audio"]
+                  "enum": [
+                    "audio"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9696,10 +10596,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["video"]
+                  "enum": [
+                    "video"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9708,7 +10612,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["question"]
+                  "enum": [
+                    "question"
+                  ]
                 },
                 "question": {
                   "type": "string",
@@ -9716,7 +10622,10 @@
                   "description": "The question to answer about the page. Maximum 10,000 characters."
                 }
               },
-              "required": ["type", "question"]
+              "required": [
+                "type",
+                "question"
+              ]
             },
             {
               "type": "object",
@@ -9725,7 +10634,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["highlights"]
+                  "enum": [
+                    "highlights"
+                  ]
                 },
                 "query": {
                   "type": "string",
@@ -9733,7 +10644,10 @@
                   "description": "The text-selection query to run against the page. Maximum 10,000 characters."
                 }
               },
-              "required": ["type", "query"]
+              "required": [
+                "type",
+                "query"
+              ]
             },
             {
               "type": "object",
@@ -9742,7 +10656,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["network"]
+                  "enum": [
+                    "network"
+                  ]
                 },
                 "resourceTypes": {
                   "type": "array",
@@ -9759,7 +10675,10 @@
                       "other"
                     ]
                   },
-                  "default": ["xhr", "fetch"],
+                  "default": [
+                    "xhr",
+                    "fetch"
+                  ],
                   "description": "Request kinds to record."
                 },
                 "urlPattern": {
@@ -9787,7 +10706,9 @@
                   "description": "Bodies larger than this are cut and marked `truncated`."
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9796,7 +10717,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["focus"]
+                  "enum": [
+                    "focus"
+                  ]
                 },
                 "query": {
                   "type": "string",
@@ -9810,7 +10733,80 @@
                   "description": "Approximate token budget for the returned markdown."
                 }
               },
-              "required": ["type", "query"]
+              "required": [
+                "type",
+                "query"
+              ]
+            },
+            {
+              "type": "object",
+              "title": "Structured",
+              "description": "Deterministic, zero-LLM structured extraction (auto-discovery + CSS/attribute/regex rules).",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "structured"
+                  ]
+                },
+                "rules": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "selector": {
+                            "type": "string"
+                          },
+                          "attr": {
+                            "type": "string"
+                          },
+                          "all": {
+                            "type": "boolean"
+                          },
+                          "regex": {
+                            "type": "string"
+                          },
+                          "transform": {
+                            "type": "string",
+                            "enum": [
+                              "number",
+                              "integer",
+                              "boolean",
+                              "trim",
+                              "lowercase",
+                              "uppercase",
+                              "url",
+                              "date"
+                            ]
+                          },
+                          "fields": {
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "selector"
+                        ]
+                      }
+                    ]
+                  }
+                },
+                "includeAuto": {
+                  "type": "boolean",
+                  "default": true
+                },
+                "includeTables": {
+                  "type": "boolean",
+                  "default": true
+                }
+              },
+              "required": [
+                "type"
+              ]
             }
           ]
         },
@@ -9831,10 +10827,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["markdown"]
+                  "enum": [
+                    "markdown"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9842,10 +10842,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["summary"]
+                  "enum": [
+                    "summary"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9853,10 +10857,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["html"]
+                  "enum": [
+                    "html"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9864,10 +10872,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["rawHtml"]
+                  "enum": [
+                    "rawHtml"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9875,10 +10887,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["links"]
+                  "enum": [
+                    "links"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9886,10 +10902,14 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["images"]
+                  "enum": [
+                    "images"
+                  ]
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             },
             {
               "type": "object",
@@ -9897,7 +10917,9 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "enum": ["json"]
+                  "enum": [
+                    "json"
+                  ]
                 },
                 "schema": {
                   "type": "object",
@@ -9908,7 +10930,9 @@
                   "description": "The prompt to use for the JSON output"
                 }
               },
-              "required": ["type"]
+              "required": [
+                "type"
+              ]
             }
           ]
         },
@@ -9965,11 +10989,17 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["pdf"]
+                      "enum": [
+                        "pdf"
+                      ]
                     },
                     "mode": {
                       "type": "string",
-                      "enum": ["fast", "auto", "ocr"],
+                      "enum": [
+                        "fast",
+                        "auto",
+                        "ocr"
+                      ],
                       "default": "auto",
                       "description": "PDF parsing mode. \"fast\": text-only extraction. \"auto\": text-first with OCR fallback. \"ocr\": OCR on every page."
                     },
@@ -9992,10 +11022,12 @@
                     "pageMarkers": {
                       "type": "boolean",
                       "default": false,
-                      "description": "Annotate page breaks in the document markdown: pages are joined with `\\n\\n---\\n\\n<!-- page N -->\\n\\n`, where N is the 1-based physical page of the content that follows. Markers appear between pages only (no leading marker for page 1), and numbering may skip pages merged across a page break — use `pages: true` when every physical page is needed. No new response field; no additional cost."
+                      "description": "Annotate page breaks in the document markdown: pages are joined with `\\n\\n---\\n\\n<!-- page N -->\\n\\n`, where N is the 1-based physical page of the content that follows. Markers appear between pages only (no leading marker for page 1), and numbering may skip pages merged across a page break \u2014 use `pages: true` when every physical page is needed. No new response field; no additional cost."
                     }
                   },
-                  "required": ["type"],
+                  "required": [
+                    "type"
+                  ],
                   "additionalProperties": false
                 }
               ]
@@ -10040,7 +11072,10 @@
           },
           "proxy": {
             "type": "string",
-            "enum": ["basic", "auto"],
+            "enum": [
+              "basic",
+              "auto"
+            ],
             "description": "Proxy mode for parse uploads. `/parse` supports only `basic` and `auto`."
           },
           "origin": {
@@ -10137,7 +11172,10 @@
                 {
                   "title": "Parser name",
                   "type": "string",
-                  "enum": ["pdf", "image"],
+                  "enum": [
+                    "pdf",
+                    "image"
+                  ],
                   "description": "Shorthand for a parser object with default options. `\"pdf\"` is the same as `{ \"type\": \"pdf\" }`."
                 },
                 {
@@ -10146,11 +11184,17 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["pdf"]
+                      "enum": [
+                        "pdf"
+                      ]
                     },
                     "mode": {
                       "type": "string",
-                      "enum": ["fast", "auto", "ocr"],
+                      "enum": [
+                        "fast",
+                        "auto",
+                        "ocr"
+                      ],
                       "default": "auto",
                       "description": "PDF parsing mode. \"fast\": text-based extraction only (embedded text, fastest). \"auto\" (default): attempts fast extraction first, falls back to OCR if needed. \"ocr\": forces OCR parsing on every page."
                     },
@@ -10173,10 +11217,12 @@
                     "pageMarkers": {
                       "type": "boolean",
                       "default": false,
-                      "description": "Annotate page breaks in the document markdown: pages are joined with `\\n\\n---\\n\\n<!-- page N -->\\n\\n`, where N is the 1-based physical page of the content that follows. Markers appear between pages only (no leading marker for page 1), and numbering may skip pages merged across a page break — use `pages: true` when every physical page is needed. No new response field; no additional cost."
+                      "description": "Annotate page breaks in the document markdown: pages are joined with `\\n\\n---\\n\\n<!-- page N -->\\n\\n`, where N is the 1-based physical page of the content that follows. Markers appear between pages only (no leading marker for page 1), and numbering may skip pages merged across a page break \u2014 use `pages: true` when every physical page is needed. No new response field; no additional cost."
                     }
                   },
-                  "required": ["type"],
+                  "required": [
+                    "type"
+                  ],
                   "additionalProperties": false
                 },
                 {
@@ -10186,15 +11232,22 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["image"]
+                      "enum": [
+                        "image"
+                      ]
                     }
                   },
-                  "required": ["type"],
+                  "required": [
+                    "type"
+                  ],
                   "additionalProperties": false
                 }
               ]
             },
-            "default": ["pdf", "image"]
+            "default": [
+              "pdf",
+              "image"
+            ]
           },
           "actions": {
             "type": "array",
@@ -10210,7 +11263,9 @@
                       "properties": {
                         "type": {
                           "type": "string",
-                          "enum": ["wait"],
+                          "enum": [
+                            "wait"
+                          ],
                           "description": "Wait for a specified amount of milliseconds"
                         },
                         "milliseconds": {
@@ -10219,7 +11274,10 @@
                           "description": "Number of milliseconds to wait"
                         }
                       },
-                      "required": ["type", "milliseconds"],
+                      "required": [
+                        "type",
+                        "milliseconds"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -10228,7 +11286,9 @@
                       "properties": {
                         "type": {
                           "type": "string",
-                          "enum": ["wait"],
+                          "enum": [
+                            "wait"
+                          ],
                           "description": "Wait for a specific element to appear"
                         },
                         "selector": {
@@ -10237,7 +11297,10 @@
                           "example": "#my-element"
                         }
                       },
-                      "required": ["type", "selector"],
+                      "required": [
+                        "type",
+                        "selector"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -10248,7 +11311,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["screenshot"],
+                      "enum": [
+                        "screenshot"
+                      ],
                       "description": "Take a screenshot. The links will be in the response's `actions.screenshots` array."
                     },
                     "fullPage": {
@@ -10272,10 +11337,15 @@
                           "description": "The height of the viewport in pixels"
                         }
                       },
-                      "required": ["width", "height"]
+                      "required": [
+                        "width",
+                        "height"
+                      ]
                     }
                   },
-                  "required": ["type"]
+                  "required": [
+                    "type"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10283,7 +11353,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["click"],
+                      "enum": [
+                        "click"
+                      ],
                       "description": "Click on an element"
                     },
                     "selector": {
@@ -10297,7 +11369,10 @@
                       "default": false
                     }
                   },
-                  "required": ["type", "selector"]
+                  "required": [
+                    "type",
+                    "selector"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10305,7 +11380,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["write"],
+                      "enum": [
+                        "write"
+                      ],
                       "description": "Write text into an input field, text area, or contenteditable element. Note: You must first focus the element using a 'click' action before writing. The text will be typed character by character to simulate keyboard input."
                     },
                     "text": {
@@ -10314,7 +11391,10 @@
                       "example": "Hello, world!"
                     }
                   },
-                  "required": ["type", "text"]
+                  "required": [
+                    "type",
+                    "text"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10323,7 +11403,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["press"],
+                      "enum": [
+                        "press"
+                      ],
                       "description": "Press a key on the page"
                     },
                     "key": {
@@ -10332,7 +11414,10 @@
                       "example": "Enter"
                     }
                   },
-                  "required": ["type", "key"]
+                  "required": [
+                    "type",
+                    "key"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10340,12 +11425,17 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["scroll"],
+                      "enum": [
+                        "scroll"
+                      ],
                       "description": "Scroll the page or a specific element"
                     },
                     "direction": {
                       "type": "string",
-                      "enum": ["up", "down"],
+                      "enum": [
+                        "up",
+                        "down"
+                      ],
                       "description": "Direction to scroll",
                       "default": "down"
                     },
@@ -10355,7 +11445,9 @@
                       "example": "#my-element"
                     }
                   },
-                  "required": ["type"]
+                  "required": [
+                    "type"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10363,11 +11455,15 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["scrape"],
+                      "enum": [
+                        "scrape"
+                      ],
                       "description": "Scrape the current page content, returns the url and the html."
                     }
                   },
-                  "required": ["type"]
+                  "required": [
+                    "type"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10375,7 +11471,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["executeJavascript"],
+                      "enum": [
+                        "executeJavascript"
+                      ],
                       "description": "Execute JavaScript code on the page"
                     },
                     "script": {
@@ -10384,7 +11482,10 @@
                       "example": "document.querySelector('.button').click();"
                     }
                   },
-                  "required": ["type", "script"]
+                  "required": [
+                    "type",
+                    "script"
+                  ]
                 },
                 {
                   "type": "object",
@@ -10392,7 +11493,9 @@
                   "properties": {
                     "type": {
                       "type": "string",
-                      "enum": ["pdf"],
+                      "enum": [
+                        "pdf"
+                      ],
                       "description": "Generate a PDF of the current page. The PDF will be returned in the `actions.pdfs` array of the response."
                     },
                     "format": {
@@ -10424,7 +11527,9 @@
                       "default": 1
                     }
                   },
-                  "required": ["type"]
+                  "required": [
+                    "type"
+                  ]
                 }
               ]
             }
@@ -10461,7 +11566,11 @@
           },
           "proxy": {
             "type": "string",
-            "enum": ["basic", "enhanced", "auto"],
+            "enum": [
+              "basic",
+              "enhanced",
+              "auto"
+            ],
             "description": "Specifies the type of proxy to use.\n\n - **basic**: Proxies for scraping sites with none to basic anti-bot solutions. Fast and usually works.\n - **enhanced**: Enhanced proxies for scraping sites with advanced anti-bot solutions. Slower, but more reliable on certain sites. Billed at the same credit cost as basic.\n - **auto**: Firecrawl will automatically retry scraping with enhanced proxies if the basic proxy fails. Enhanced proxies carry no credit surcharge, so either way only the regular cost is billed.",
             "default": "auto"
           },
@@ -10508,7 +11617,9 @@
                 "description": "When true, browser state is saved back to the profile when the interact session stops. Set to false to load existing data without writing. Only one saving session is allowed at a time."
               }
             },
-            "required": ["name"]
+            "required": [
+              "name"
+            ]
           },
           "threatProtection": {
             "$ref": "#/components/schemas/ThreatProtectionOverride"
@@ -10561,7 +11672,7 @@
                     "width": {
                       "type": "number",
                       "nullable": true,
-                      "description": "Page render width in px — the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
+                      "description": "Page render width in px \u2014 the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
                     },
                     "height": {
                       "type": "number",
@@ -10910,7 +12021,11 @@
                             },
                             "status": {
                               "type": "string",
-                              "enum": ["matched", "not_found", "error"]
+                              "enum": [
+                                "matched",
+                                "not_found",
+                                "error"
+                              ]
                             },
                             "creditsCost": {
                               "type": "integer"
@@ -10940,12 +12055,20 @@
                   },
                   "changeStatus": {
                     "type": "string",
-                    "enum": ["new", "same", "changed", "removed"],
+                    "enum": [
+                      "new",
+                      "same",
+                      "changed",
+                      "removed"
+                    ],
                     "description": "The result of the comparison between the two page versions. 'new' means this page did not exist before, 'same' means content has not changed, 'changed' means content has changed, 'removed' means the page was removed."
                   },
                   "visibility": {
                     "type": "string",
-                    "enum": ["visible", "hidden"],
+                    "enum": [
+                      "visible",
+                      "hidden"
+                    ],
                     "description": "The visibility of the current page/URL. 'visible' means the URL was discovered through an organic route (links or sitemap), 'hidden' means the URL was discovered through memory from previous crawls."
                   },
                   "diff": {
@@ -10985,7 +12108,10 @@
                 "properties": {
                   "colorScheme": {
                     "type": "string",
-                    "enum": ["light", "dark"],
+                    "enum": [
+                      "light",
+                      "dark"
+                    ],
                     "description": "The detected color scheme of the page."
                   },
                   "logo": {
@@ -11284,7 +12410,12 @@
                         },
                         "condition": {
                           "type": "string",
-                          "enum": ["new", "used", "refurbished", "damaged"],
+                          "enum": [
+                            "new",
+                            "used",
+                            "refurbished",
+                            "damaged"
+                          ],
                           "description": "The variant's item condition. Present only when the page states one; never assumed to be new."
                         },
                         "title": {
@@ -11315,7 +12446,9 @@
                               "description": "The price formatted for display (e.g. '$199.99')."
                             }
                           },
-                          "required": ["amount"]
+                          "required": [
+                            "amount"
+                          ]
                         },
                         "sale": {
                           "type": "object",
@@ -11338,10 +12471,14 @@
                                   "description": "The price formatted for display (e.g. '$249.99')."
                                 }
                               },
-                              "required": ["amount"]
+                              "required": [
+                                "amount"
+                              ]
                             }
                           },
-                          "required": ["originalPrice"]
+                          "required": [
+                            "originalPrice"
+                          ]
                         },
                         "availability": {
                           "type": "object",
@@ -11356,7 +12493,9 @@
                               "description": "Human-readable availability text (e.g. 'In Stock')."
                             }
                           },
-                          "required": ["inStock"]
+                          "required": [
+                            "inStock"
+                          ]
                         },
                         "images": {
                           "type": "array",
@@ -11373,15 +12512,23 @@
                                 "description": "Alternative text for the image."
                               }
                             },
-                            "required": ["url"]
+                            "required": [
+                              "url"
+                            ]
                           }
                         }
                       },
-                      "required": ["availability"]
+                      "required": [
+                        "availability"
+                      ]
                     }
                   }
                 },
-                "required": ["title", "url", "variants"]
+                "required": [
+                  "title",
+                  "url",
+                  "variants"
+                ]
               },
               "menu": {
                 "type": "object",
@@ -11409,7 +12556,9 @@
                         "description": "The merchant type (e.g. 'restaurant')."
                       }
                     },
-                    "required": ["name"]
+                    "required": [
+                      "name"
+                    ]
                   },
                   "currency": {
                     "type": "string",
@@ -11469,7 +12618,9 @@
                                       "description": "Alternative text for the image."
                                     }
                                   },
-                                  "required": ["url"]
+                                  "required": [
+                                    "url"
+                                  ]
                                 }
                               },
                               "price": {
@@ -11489,7 +12640,9 @@
                                     "description": "The price formatted for display (e.g. '$7.99')."
                                   }
                                 },
-                                "required": ["amount"]
+                                "required": [
+                                  "amount"
+                                ]
                               },
                               "availability": {
                                 "type": "object",
@@ -11505,7 +12658,9 @@
                                     "description": "Human-readable availability text."
                                   }
                                 },
-                                "required": ["inStock"]
+                                "required": [
+                                  "inStock"
+                                ]
                               },
                               "dietary": {
                                 "type": "array",
@@ -11547,11 +12702,16 @@
                                 "description": "The URL the item was extracted from."
                               }
                             },
-                            "required": ["name"]
+                            "required": [
+                              "name"
+                            ]
                           }
                         }
                       },
-                      "required": ["name", "items"]
+                      "required": [
+                        "name",
+                        "items"
+                      ]
                     }
                   },
                   "sourceUrl": {
@@ -11560,7 +12720,10 @@
                     "description": "The URL the menu was extracted from."
                   }
                 },
-                "required": ["isMenu", "sections"]
+                "required": [
+                  "isMenu",
+                  "sections"
+                ]
               },
               "tools": {
                 "type": "array",
@@ -11660,6 +12823,53 @@
                     }
                   }
                 }
+              },
+              "structured": {
+                "type": "object",
+                "nullable": true,
+                "description": "Zero-LLM structured extraction output when `structured` is in `formats`.",
+                "properties": {
+                  "data": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "jsonLd": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "openGraph": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "twitter": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "meta": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "tables": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "feeds": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
               }
             }
           }
@@ -11698,7 +12908,10 @@
             ]
           }
         },
-        "required": ["provider", "capability"]
+        "required": [
+          "provider",
+          "capability"
+        ]
       },
       "AlexandriaResult": {
         "type": "object",
@@ -11742,7 +12955,12 @@
                 "description": "HTTP status code returned by the upstream provider, when applicable."
               }
             },
-            "required": ["provider", "capability", "creditsCost", "data"]
+            "required": [
+              "provider",
+              "capability",
+              "creditsCost",
+              "data"
+            ]
           },
           {
             "type": "object",
@@ -11777,10 +12995,15 @@
                     "description": "HTTP status code returned by the upstream provider, when applicable."
                   }
                 },
-                "required": ["code", "message"]
+                "required": [
+                  "code",
+                  "message"
+                ]
               }
             },
-            "required": ["error"]
+            "required": [
+              "error"
+            ]
           }
         ]
       },
@@ -11864,7 +13087,10 @@
             "description": "Why this tool was surfaced. Omitted when `toolDetail` is `compact`.",
             "items": {
               "type": "string",
-              "enum": ["semantic", "domain"]
+              "enum": [
+                "semantic",
+                "domain"
+              ]
             }
           },
           "matchedUrls": {
@@ -11875,7 +13101,11 @@
             }
           }
         },
-        "required": ["provider", "capability", "description"]
+        "required": [
+          "provider",
+          "capability",
+          "description"
+        ]
       },
       "FindToolsOptions": {
         "type": "object",
@@ -11924,7 +13154,11 @@
           },
           "level": {
             "type": "string",
-            "enum": ["providers", "groups", "tools"],
+            "enum": [
+              "providers",
+              "groups",
+              "tools"
+            ],
             "description": "The catalogue level to list in `items`."
           },
           "expand": {
@@ -11932,7 +13166,11 @@
             "description": "Contract parts to include on each tool. Use `[\"options\", \"response\"]` for inputs and output shape, add `examples` for example payloads, or use `[]` for compact results.",
             "items": {
               "type": "string",
-              "enum": ["options", "response", "examples"]
+              "enum": [
+                "options",
+                "response",
+                "examples"
+              ]
             }
           },
           "limit": {
@@ -11954,7 +13192,11 @@
         "properties": {
           "level": {
             "type": "string",
-            "enum": ["providers", "groups", "tools"],
+            "enum": [
+              "providers",
+              "groups",
+              "tools"
+            ],
             "description": "The catalogue level of the items on this page."
           },
           "items": {
@@ -11991,10 +13233,16 @@
                       "type": "string"
                     }
                   },
-                  "required": ["provider", "capability"]
+                  "required": [
+                    "provider",
+                    "capability"
+                  ]
                 }
               },
-              "required": ["id", "name"]
+              "required": [
+                "id",
+                "name"
+              ]
             }
           },
           "total": {
@@ -12013,7 +13261,11 @@
             "description": "An `alexandria` call for the next page of this listing, or `null` on the last page."
           }
         },
-        "required": ["level", "items", "total"]
+        "required": [
+          "level",
+          "items",
+          "total"
+        ]
       },
       "AlexandriaScrapeResponse": {
         "type": "object",
@@ -12042,10 +13294,17 @@
                 "description": "Sum of `creditsCost` across successful items."
               }
             },
-            "required": ["alexandria", "creditsCost"]
+            "required": [
+              "alexandria",
+              "creditsCost"
+            ]
           }
         },
-        "required": ["success", "scrape_id", "data"]
+        "required": [
+          "success",
+          "scrape_id",
+          "data"
+        ]
       },
       "CrawlStatusResponseObj": {
         "type": "object",
@@ -12130,7 +13389,7 @@
                       "width": {
                         "type": "number",
                         "nullable": true,
-                        "description": "Page render width in px — the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
+                        "description": "Page render width in px \u2014 the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
                       },
                       "height": {
                         "type": "number",
@@ -12472,7 +13731,7 @@
                       "width": {
                         "type": "number",
                         "nullable": true,
-                        "description": "Page render width in px — the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
+                        "description": "Page render width in px \u2014 the anchor for denormalizing bbox coordinates. Null for pages that never rendered."
                       },
                       "height": {
                         "type": "number",
@@ -12756,7 +14015,9 @@
                   "description": "A description of the page, if available."
                 }
               },
-              "required": ["url"]
+              "required": [
+                "url"
+              ]
             }
           }
         }
@@ -12791,7 +14052,12 @@
           },
           "status": {
             "type": "string",
-            "enum": ["completed", "processing", "failed", "cancelled"],
+            "enum": [
+              "completed",
+              "processing",
+              "failed",
+              "cancelled"
+            ],
             "description": "The current status of the extract job"
           },
           "expiresAt": {
@@ -12810,7 +14076,11 @@
         "properties": {
           "rating": {
             "type": "string",
-            "enum": ["good", "partial", "bad"]
+            "enum": [
+              "good",
+              "partial",
+              "bad"
+            ]
           },
           "valuableSources": {
             "type": "array",
@@ -12827,7 +14097,9 @@
                   "maxLength": 1000
                 }
               },
-              "required": ["url"]
+              "required": [
+                "url"
+              ]
             }
           },
           "missingContent": {
@@ -12846,7 +14118,9 @@
                   "maxLength": 2000
                 }
               },
-              "required": ["topic"]
+              "required": [
+                "topic"
+              ]
             }
           },
           "querySuggestions": {
@@ -12862,11 +14136,15 @@
             "nullable": true
           }
         },
-        "required": ["rating"]
+        "required": [
+          "rating"
+        ]
       },
       "SupportAskRequest": {
         "type": "object",
-        "required": ["question"],
+        "required": [
+          "question"
+        ],
         "additionalProperties": true,
         "properties": {
           "question": {
@@ -12888,7 +14166,11 @@
           },
           "confidence": {
             "type": "string",
-            "enum": ["high", "medium", "low"]
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
           },
           "fixParameters": {
             "type": "object",
@@ -12916,7 +14198,9 @@
       },
       "SupportDocsSearchRequest": {
         "type": "object",
-        "required": ["question"],
+        "required": [
+          "question"
+        ],
         "properties": {
           "question": {
             "type": "string",
@@ -12979,7 +14263,14 @@
       },
       "RedactPIIEntity": {
         "type": "string",
-        "enum": ["PERSON", "EMAIL", "PHONE", "LOCATION", "FINANCIAL", "SECRET"],
+        "enum": [
+          "PERSON",
+          "EMAIL",
+          "PHONE",
+          "LOCATION",
+          "FINANCIAL",
+          "SECRET"
+        ],
         "description": "Public PII entity buckets supported by Firecrawl redaction."
       },
       "RedactPIIOptions": {
@@ -12988,7 +14279,11 @@
         "properties": {
           "mode": {
             "type": "string",
-            "enum": ["accurate", "aggressive", "fast"],
+            "enum": [
+              "accurate",
+              "aggressive",
+              "fast"
+            ],
             "default": "accurate",
             "description": "Redaction strategy. `accurate` is model-only and optimized for precision, `aggressive` increases recall with additional heuristics, and `fast` uses heuristics without the model call."
           },
@@ -13001,7 +14296,11 @@
           },
           "replaceStyle": {
             "type": "string",
-            "enum": ["tag", "mask", "remove"],
+            "enum": [
+              "tag",
+              "mask",
+              "remove"
+            ],
             "default": "tag",
             "description": "`tag` replaces spans with placeholders like `<EMAIL>`, `mask` replaces characters with `*`, and `remove` deletes the span text."
           }
@@ -13018,12 +14317,19 @@
           }
         },
         "example": {
-          "arxiv": ["2105.05233"]
+          "arxiv": [
+            "2105.05233"
+          ]
         }
       },
       "ResearchPaperSignals": {
         "type": "object",
-        "required": ["structural", "semantic", "articleRank", "seedOverlap"],
+        "required": [
+          "structural",
+          "semantic",
+          "articleRank",
+          "seedOverlap"
+        ],
         "properties": {
           "structural": {
             "type": "number",
@@ -13049,7 +14355,13 @@
       },
       "ResearchPaperResult": {
         "type": "object",
-        "required": ["paperId", "primaryId", "title", "abstract", "score"],
+        "required": [
+          "paperId",
+          "primaryId",
+          "title",
+          "abstract",
+          "score"
+        ],
         "properties": {
           "paperId": {
             "type": "string",
@@ -13079,7 +14391,11 @@
       },
       "ResearchPaperMetadata": {
         "type": "object",
-        "required": ["paperId", "title", "abstract"],
+        "required": [
+          "paperId",
+          "title",
+          "abstract"
+        ],
         "properties": {
           "paperId": {
             "type": "string",
@@ -13117,7 +14433,10 @@
       },
       "ResearchPassage": {
         "type": "object",
-        "required": ["text", "score"],
+        "required": [
+          "text",
+          "score"
+        ],
         "properties": {
           "text": {
             "type": "string",
@@ -13132,7 +14451,10 @@
       },
       "ResearchSearchPapersResponse": {
         "type": "object",
-        "required": ["success", "results"],
+        "required": [
+          "success",
+          "results"
+        ],
         "properties": {
           "success": {
             "type": "boolean"
@@ -13147,7 +14469,10 @@
       },
       "ResearchPaperMetadataResponse": {
         "type": "object",
-        "required": ["success", "paper"],
+        "required": [
+          "success",
+          "paper"
+        ],
         "properties": {
           "success": {
             "type": "boolean"
@@ -13159,7 +14484,13 @@
       },
       "ResearchReadPaperResponse": {
         "type": "object",
-        "required": ["success", "paper", "paperId", "query", "passages"],
+        "required": [
+          "success",
+          "paper",
+          "paperId",
+          "query",
+          "passages"
+        ],
         "properties": {
           "success": {
             "type": "boolean"
@@ -13183,7 +14514,12 @@
       },
       "ResearchSimilarPapersResponse": {
         "type": "object",
-        "required": ["success", "results", "poolSize", "truncated"],
+        "required": [
+          "success",
+          "results",
+          "poolSize",
+          "truncated"
+        ],
         "properties": {
           "success": {
             "type": "boolean"
@@ -13244,7 +14580,10 @@
                 "served_span": {
                   "type": "object",
                   "description": "Byte offsets of `text` within the full passage, present when `text` is one contiguous span.",
-                  "required": ["start", "end"],
+                  "required": [
+                    "start",
+                    "end"
+                  ],
                   "properties": {
                     "start": {
                       "type": "integer",
@@ -13405,7 +14744,12 @@
             "properties": {
               "endpoint": {
                 "type": "string",
-                "enum": ["search", "scrape", "parse", "map"]
+                "enum": [
+                  "search",
+                  "scrape",
+                  "parse",
+                  "map"
+                ]
               },
               "jobId": {
                 "type": "string",
@@ -13466,11 +14810,16 @@
                       "maxLength": 2000
                     }
                   },
-                  "required": ["topic"]
+                  "required": [
+                    "topic"
+                  ]
                 }
               }
             },
-            "required": ["endpoint", "jobId"]
+            "required": [
+              "endpoint",
+              "jobId"
+            ]
           }
         ]
       },
@@ -13504,7 +14853,11 @@
             "type": "string"
           }
         },
-        "required": ["success", "feedbackId", "creditsRefunded"]
+        "required": [
+          "success",
+          "feedbackId",
+          "creditsRefunded"
+        ]
       },
       "FeedbackErrorResponse": {
         "type": "object",
@@ -13526,23 +14879,29 @@
             }
           }
         },
-        "required": ["success", "error"]
+        "required": [
+          "success",
+          "error"
+        ]
       },
       "ThreatProtectionOverride": {
         "type": "object",
         "title": "Threat Protection Override",
-        "description": "Per-request [Threat Protection](https://docs.firecrawl.dev/features/threat-protection) override. Fields you provide replace the corresponding fields of your organization's policy for this request only; omitted fields keep their organization-level values. Requires Threat Protection to be enabled for your team (enterprise feature) — otherwise the request is rejected with a 403. If your organization has disabled request overrides, any request that includes this object is rejected with a 403. If Threat Protection is enforced for your team, `mode` may not be set to `off`.",
+        "description": "Per-request [Threat Protection](https://docs.firecrawl.dev/features/threat-protection) override. Fields you provide replace the corresponding fields of your organization's policy for this request only; omitted fields keep their organization-level values. Requires Threat Protection to be enabled for your team (enterprise feature) \u2014 otherwise the request is rejected with a 403. If your organization has disabled request overrides, any request that includes this object is rejected with a 403. If Threat Protection is enforced for your team, `mode` may not be set to `off`.",
         "properties": {
           "mode": {
             "type": "string",
-            "enum": ["off", "normal"],
+            "enum": [
+              "off",
+              "normal"
+            ],
             "description": "URL scanning mode for this request. `normal` checks URLs against Google Web Risk (+2 credits per URL scanned)."
           },
           "riskScoreThreshold": {
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
-            "description": "Normalized risk score (0–100) at or above which a classifier verdict blocks the URL. Lower is stricter.",
+            "description": "Normalized risk score (0\u2013100) at or above which a classifier verdict blocks the URL. Lower is stricter.",
             "example": 75
           },
           "blacklist": {
@@ -13571,7 +14930,10 @@
           },
           "failurePolicy": {
             "type": "string",
-            "enum": ["open", "closed"],
+            "enum": [
+              "open",
+              "closed"
+            ],
             "description": "What to do when the classifier can't be reached: `closed` blocks the request, `open` allows it."
           }
         }
@@ -13586,7 +14948,10 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["calls", "terms"],
+            "enum": [
+              "calls",
+              "terms"
+            ],
             "description": "`calls`: paid provider calls held back by `requireApproval`. `terms`: providers whose data terms need accepting (`onTermsRequired: \"ask\"`). Absent on items written before terms offers existed, which are `calls`."
           },
           "reason": {
@@ -13706,7 +15071,10 @@
           },
           "onTermsRequired": {
             "type": "string",
-            "enum": ["skip", "ask"]
+            "enum": [
+              "skip",
+              "ask"
+            ]
           },
           "paidCalls": {
             "type": "integer",
@@ -13738,7 +15106,9 @@
                 },
                 "reason": {
                   "type": "string",
-                  "enum": ["terms_required"]
+                  "enum": [
+                    "terms_required"
+                  ]
                 },
                 "version": {
                   "type": "string",
@@ -13757,7 +15127,9 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["accept_terms"]
+                "enum": [
+                  "accept_terms"
+                ]
               },
               "approvalId": {
                 "type": "string",
@@ -13859,7 +15231,9 @@
                     "default": "UTC"
                   }
                 },
-                "required": ["cron"]
+                "required": [
+                  "cron"
+                ]
               },
               {
                 "type": "object",
@@ -13868,7 +15242,9 @@
                     "type": "integer"
                   }
                 },
-                "required": ["everySeconds"]
+                "required": [
+                  "everySeconds"
+                ]
               }
             ]
           },
@@ -13894,7 +15270,12 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["new", "same", "changed", "removed"]
+              "enum": [
+                "new",
+                "same",
+                "changed",
+                "removed"
+              ]
             }
           },
           "createdAt": {
@@ -13909,7 +15290,13 @@
           "lastStatus": {
             "type": "string",
             "nullable": true,
-            "enum": ["new", "same", "changed", "removed", "error"]
+            "enum": [
+              "new",
+              "same",
+              "changed",
+              "removed",
+              "error"
+            ]
           },
           "nextRunAt": {
             "type": "string",
@@ -13926,7 +15313,10 @@
           },
           "trigger": {
             "type": "string",
-            "enum": ["schedule", "manual"]
+            "enum": [
+              "schedule",
+              "manual"
+            ]
           },
           "startedAt": {
             "type": "string",
@@ -13939,7 +15329,12 @@
           "changeStatus": {
             "type": "string",
             "nullable": true,
-            "enum": ["new", "same", "changed", "removed"]
+            "enum": [
+              "new",
+              "same",
+              "changed",
+              "removed"
+            ]
           },
           "snapshotId": {
             "type": "string",

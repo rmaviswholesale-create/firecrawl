@@ -82,6 +82,9 @@ from .methods import extract as extract_module
 from .methods import agent as agent_module
 from .methods import browser as browser_module
 from .methods import monitor as monitor_module
+from .methods import watch as watch_module
+from .methods import profiles as profiles_module
+from .methods import snapshots as snapshots_module
 from .methods import research as research_module
 from .methods import feedback as feedback_module
 from .methods.research_docs import (
@@ -2026,4 +2029,47 @@ class FirecrawlClient:
             poll_interval=poll_interval,
             timeout=wait_timeout,
         )
+
+    def create_watch(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        return watch_module.create_watch(self.http_client, request)
+
+    def list_watches(self) -> List[Dict[str, Any]]:
+        return watch_module.list_watches(self.http_client)
+
+    def get_watch(self, watch_id: str) -> Dict[str, Any]:
+        return watch_module.get_watch(self.http_client, watch_id)
+
+    def update_watch(self, watch_id: str, request: Dict[str, Any]) -> Dict[str, Any]:
+        return watch_module.update_watch(self.http_client, watch_id, request)
+
+    def delete_watch(self, watch_id: str) -> Dict[str, Any]:
+        return watch_module.delete_watch(self.http_client, watch_id)
+
+    def run_watch(self, watch_id: str) -> Dict[str, Any]:
+        return watch_module.run_watch(self.http_client, watch_id)
+
+    def list_watch_runs(
+        self, watch_id: str, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        return watch_module.list_watch_runs(self.http_client, watch_id, limit=limit)
+
+    def list_profiles(self) -> List[Dict[str, Any]]:
+        return profiles_module.list_profiles(self.http_client)
+
+    def get_profile(self, name: str) -> Dict[str, Any]:
+        return profiles_module.get_profile(self.http_client, name)
+
+    def delete_profile(self, name: str) -> Dict[str, Any]:
+        return profiles_module.delete_profile(self.http_client, name)
+
+    def list_snapshots(
+        self, url: str, tag: Optional[str] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        return snapshots_module.list_snapshots(self.http_client, url, tag=tag, limit=limit)
+
+    def get_snapshot(self, snapshot_id: str) -> Dict[str, Any]:
+        return snapshots_module.get_snapshot(self.http_client, snapshot_id)
+
+    def diff_snapshots(self, from_id: str, to_id: str) -> Dict[str, Any]:
+        return snapshots_module.diff_snapshots(self.http_client, from_id, to_id)
     

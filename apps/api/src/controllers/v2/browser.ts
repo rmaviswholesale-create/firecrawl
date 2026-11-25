@@ -35,6 +35,10 @@ import {
 } from "../../lib/hangar";
 import { enqueueBrowserSessionActivity } from "../../lib/browser-session-activity";
 import { browserProfileNameSchema } from "../../lib/browser-profiles";
+import {
+  deleteLocalProfile,
+  localProfileStoreEnabled,
+} from "../../lib/local-profile-store";
 import { withZeroDataRetention } from "../../lib/otel-tracer";
 import { UsOnlyUnavailableError } from "../../scraper/scrapeURL/error";
 
@@ -231,6 +235,10 @@ export async function browserProfileDeleteController(
     });
   }
   try {
+    if (!config.HANGAR_URL && localProfileStoreEnabled) {
+      await deleteLocalProfile(req.auth.team_id, name.data);
+      return res.json({ success: true });
+    }
     const { deletedAt } = await deleteHangarProfile(
       req.auth.team_id,
       name.data,

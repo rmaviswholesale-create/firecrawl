@@ -442,6 +442,22 @@ const configSchema = z.object({
   WATCH_MAX_PER_TEAM: emptyStringAsDefault(
     z.coerce.number().int().min(1).default(200),
   ),
+  // Maximum delivery attempts for a watch webhook (1 = no retries).
+  WATCH_WEBHOOK_MAX_ATTEMPTS: emptyStringAsDefault(
+    z.coerce.number().int().min(1).max(5).default(3),
+  ),
+  // Initial backoff in ms before retrying a failed watch webhook (doubles each try).
+  WATCH_WEBHOOK_RETRY_BASE_MS: emptyStringAsDefault(
+    z.coerce.number().int().min(10).max(60_000).default(1000),
+  ),
+
+  // Local browser profiles (cookies + localStorage in Redis for Playwright).
+  // On by default when DB auth and Hangar are not configured.
+  LOCAL_PROFILE_STORE_ENABLED: emptyStringAsUndefined(z.stringbool()),
+  // Days a saved profile survives without being updated. 0 keeps it.
+  LOCAL_PROFILE_TTL_DAYS: emptyStringAsDefault(
+    z.coerce.number().int().min(0).default(30),
+  ),
 
   // API keys for deployments without DB authentication (comma-separated).
   // When set, every request needs one of them as a Bearer token.

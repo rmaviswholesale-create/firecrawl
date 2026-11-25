@@ -494,6 +494,53 @@ const focusFormatWithOptions = z.strictObject({
 
 type FocusFormatWithOptions = z.output<typeof focusFormatWithOptions>;
 
+const extractTransformSchema = z.enum([
+  "trim",
+  "number",
+  "integer",
+  "boolean",
+  "url",
+  "lowercase",
+  "uppercase",
+]);
+
+export type ExtractRuleSchemaInput =
+  | string
+  | {
+      selector: string;
+      attr?: string;
+      all?: boolean;
+      regex?: string;
+      transform?: z.infer<typeof extractTransformSchema>;
+      fields?: Record<string, ExtractRuleSchemaInput>;
+    };
+
+export const extractRuleSchema: z.ZodType<ExtractRuleSchemaInput> = z.lazy(() =>
+  z.union([
+    z.string().min(1).max(500),
+    z.strictObject({
+      selector: z.string().min(1).max(500),
+      attr: z.string().min(1).max(128).optional(),
+      all: z.boolean().optional(),
+      regex: z.string().min(1).max(200).optional(),
+      transform: extractTransformSchema.optional(),
+      fields: z.record(z.string().min(1).max(128), extractRuleSchema).optional(),
+    }),
+  ]),
+);
+
+// "Structured": deterministic, zero-LLM structured data extraction. Auto-discovers
+// JSON-LD, OpenGraph, Twitter Cards, HTML tables, and feeds, and/or runs
+// declarative CSS/attribute/regex/transform extraction rules.
+const structuredFormatWithOptions = z.strictObject({
+  type: z.literal("structured"),
+  rules: z.record(z.string().min(1).max(128), extractRuleSchema).optional(),
+  includeAuto: z.boolean().optional(),
+  includeTables: z.boolean().optional(),
+});
+
+type StructuredFormatWithOptions = z.output<typeof structuredFormatWithOptions>;
+
 const attributesFormatWithOptions = z.strictObject({
   type: z.literal("attributes"),
   selectors: z
@@ -558,6 +605,7 @@ export type FormatObject =
   | ScreenshotFormatWithOptions
   | NetworkFormatWithOptions
   | FocusFormatWithOptions
+  | StructuredFormatWithOptions
   | AttributesFormatWithOptions
   | QuestionFormatWithOptions
   | HighlightsFormatWithOptions
@@ -866,6 +914,7 @@ const scrapeOptionFields = z.strictObject({
           screenshotFormatWithOptions,
           networkFormatWithOptions,
           focusFormatWithOptions,
+          structuredFormatWithOptions,
           attributesFormatWithOptions,
           brandingFormatWithOptions,
           z.strictObject({ type: z.literal("product") }),
@@ -888,6 +937,9 @@ const scrapeOptionFields = z.strictObject({
     .refine(x => {
       return x.filter(f => f.type === "focus").length <= 1;
     }, "You may only specify one focus format")
+    .refine(x => {
+      return x.filter(f => f.type === "structured").length <= 1;
+    }, "You may only specify one structured format")
     .refine(x => {
       const hasChangeTracking = x.find(f => f.type === "changeTracking");
       const hasMarkdown = x.find(f => f.type === "markdown");
@@ -1605,6 +1657,23 @@ export type FocusResult = {
   sections: { heading: string | null; score: number }[];
 };
 
+export type StructuredResult = {
+  data?: Record<string, unknown>;
+  jsonLd?: unknown[];
+  openGraph?: Record<string, string>;
+  twitter?: Record<string, string>;
+  tables?: Array<{
+    caption?: string;
+    headers: string[];
+    rows: Record<string, string>[];
+  }>;
+  feeds?: Array<{
+    title?: string;
+    type: string;
+    href: string;
+  }>;
+};
+
 export type Document = {
   title?: string;
   description?: string;
@@ -1649,6 +1718,7 @@ export type Document = {
   };
   network?: NetworkCapture;
   focus?: FocusResult;
+  structured?: StructuredResult;
   changeTracking?: {
     previousScrapeAt: string | null;
     changeStatus: "new" | "same" | "changed" | "removed";

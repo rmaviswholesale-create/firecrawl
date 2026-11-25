@@ -8,6 +8,12 @@ import { hasFormatOfType } from "../../../../lib/format-utils";
 import { ActionError } from "../../error";
 import { getBrandingScript } from "../fire-engine/brandingScript";
 import { browserLocaleFor } from "./locale";
+import {
+  browserStorageStateSchema,
+  getLocalProfile,
+  localProfileStoreEnabled,
+  saveLocalProfile,
+} from "../../../../lib/local-profile-store";
 
 // Give the page time to settle before the branding scan reads its styles.
 const BRANDING_DEFAULT_WAIT_MS = 2000;
@@ -48,6 +54,17 @@ export async function scrapeURLWithPlaywright(
   const stealth = meta.featureFlags.has("stealthProxy");
   const locale = browserLocaleFor(meta.options.location);
 
+  const profile = meta.options.profile;
+  const useLocalProfile =
+    !!profile &&
+    localProfileStoreEnabled &&
+    !meta.internalOptions.zeroDataRetention;
+  const profileTeamId = meta.internalOptions.teamId ?? "bypass";
+  const initialStorageState = useLocalProfile
+    ? await getLocalProfile(profileTeamId, profile.name)
+    : null;
+  const saveStorageState = useLocalProfile && profile.saveChanges !== false;
+
   const response = await robustFetch({
     url: config.PLAYWRIGHT_MICROSERVICE_URL!,
     headers: {
@@ -72,6 +89,8 @@ export async function scrapeURLWithPlaywright(
       ...(meta.options.mobile ? { mobile: true } : {}),
       ...(stealth ? { stealth: true } : {}),
       ...(locale ? { location: locale } : {}),
+      ...(initialStorageState ? { storage_state: initialStorageState } : {}),
+      ...(saveStorageState ? { save_storage_state: true } : {}),
       ...(networkFormat
         ? {
             capture_network: {
@@ -98,6 +117,7 @@ export async function scrapeURLWithPlaywright(
       actionError: z.string().optional(),
       stealth: z.boolean().optional(),
       screenshot: z.string().optional(),
+      storageState: browserStorageStateSchema.optional(),
       actions: z
         .object({
           screenshots: z.array(z.string()),
@@ -124,6 +144,22 @@ export async function scrapeURLWithPlaywright(
     throw new ActionError(response.actionError);
   }
 
+  let profileSaveWarning: string | undefined;
+  if (saveStorageState && response.storageState) {
+    try {
+      await saveLocalProfile(profileTeamId, profile.name, response.storageState);
+    } catch (error) {
+      meta.logger.warn("Failed to save local browser profile", {
+        profile: profile.name,
+        error,
+      });
+      profileSaveWarning =
+        error instanceof Error
+          ? error.message
+          : "Failed to save browser profile.";
+    }
+  }
+
   // An older playwright-service accepts the request but silently skips what it
   // does not know. Say so instead of returning a page the actions never ran on.
   const skipped = [
@@ -131,11 +167,15 @@ export async function scrapeURLWithPlaywright(
     screenshotFormat && !response.screenshot ? "screenshot" : null,
     networkFormat && !response.network ? "network capture" : null,
     stealth && !response.stealth ? "stealth mode" : null,
+    saveStorageState && !response.storageState ? "browser profile" : null,
   ].filter((x): x is string => x !== null);
-  const warning =
+  const warnings = [
     skipped.length > 0
       ? `The Playwright service did not run: ${skipped.join(", ")}. Update playwright-service to a build that supports them.`
-      : undefined;
+      : null,
+    profileSaveWarning ?? null,
+  ].filter((x): x is string => x !== null);
+  const warning = warnings.length > 0 ? warnings.join(" ") : undefined;
 
   if (response.contentType?.includes("application/json")) {
     response.content = await getInnerJson(response.content);

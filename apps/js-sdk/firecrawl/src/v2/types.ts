@@ -11,6 +11,7 @@ export type FormatString =
   | "summary"
   | "changeTracking"
   | "network"
+  | "structured"
   | "json"
   | "attributes"
   | "branding"
@@ -89,6 +90,34 @@ export interface FocusFormat {
   maxTokens?: number;
 }
 
+export type ExtractTransform =
+  | "trim"
+  | "number"
+  | "integer"
+  | "boolean"
+  | "url"
+  | "lowercase"
+  | "uppercase";
+
+export type ExtractRule =
+  | string
+  | {
+      selector: string;
+      attr?: string;
+      all?: boolean;
+      regex?: string;
+      transform?: ExtractTransform;
+      fields?: Record<string, ExtractRule>;
+    };
+
+/** Deterministic, zero-LLM structured extraction (auto-discovery + CSS rules). */
+export interface StructuredFormat {
+  type: "structured";
+  rules?: Record<string, ExtractRule>;
+  includeAuto?: boolean;
+  includeTables?: boolean;
+}
+
 export interface NetworkCaptureEntry {
   url: string;
   method: string;
@@ -115,6 +144,23 @@ export interface FocusResult {
   estimatedTokens: number;
   sourceEstimatedTokens: number;
   sections: { heading: string | null; score: number }[];
+}
+
+export interface StructuredResult {
+  data?: Record<string, unknown>;
+  jsonLd?: unknown[];
+  openGraph?: Record<string, string>;
+  twitter?: Record<string, string>;
+  tables?: Array<{
+    caption?: string;
+    headers: string[];
+    rows: Record<string, string>[];
+  }>;
+  feeds?: Array<{
+    title?: string;
+    type: string;
+    href: string;
+  }>;
 }
 export interface AttributesFormat extends Format {
   type: "attributes";
@@ -149,6 +195,7 @@ export type FormatOption =
   | ScreenshotFormat
   | NetworkFormat
   | FocusFormat
+  | StructuredFormat
   | AttributesFormat
   | QuestionFormat
   | HighlightsFormat
@@ -807,6 +854,7 @@ export interface Document {
   changeTracking?: Record<string, unknown>;
   network?: NetworkCapture;
   focus?: FocusResult;
+  structured?: StructuredResult;
   branding?: BrandingProfile;
   product?: ProductProfile;
   menu?: MenuProfile;
@@ -2572,4 +2620,102 @@ export interface SimilarPapersOptions {
 export interface SearchGithubOptions {
   /** Number of results to return (1–100, default 20). */
   k?: number;
+}
+
+
+export type WatchSchedule =
+  | { cron: string; timezone?: string }
+  | { everySeconds: number };
+
+export type WatchChangeStatus = "new" | "same" | "changed" | "removed";
+
+export interface WatchWebhookConfig {
+  url: string;
+  headers?: Record<string, string>;
+  secret?: string;
+}
+
+export interface Watch {
+  id: string;
+  url: string;
+  schedule: WatchSchedule;
+  enabled?: boolean;
+  webhook: { url: string; headers?: Record<string, string>; hasSecret: boolean } | null;
+  notifyOn: WatchChangeStatus[];
+  scrapeOptions?: Record<string, unknown> | null;
+  focus?: { query: string; maxTokens?: number } | null;
+  extractRules?: Record<string, unknown> | null;
+  createdAt: string;
+  lastRunAt: string | null;
+  lastStatus: WatchChangeStatus | "error" | null;
+  nextRunAt: string;
+}
+
+export interface WatchRun {
+  id: string;
+  trigger: "schedule" | "manual";
+  startedAt: string;
+  finishedAt: string;
+  changeStatus: WatchChangeStatus | null;
+  snapshotId: string | null;
+  comparedTo: { snapshotId: string; capturedAt: string } | null;
+  diff: string | null;
+  extracted?: Record<string, unknown> | null;
+  fieldChanges?: Array<{ path: string; before: unknown; after: unknown }> | null;
+  error: string | null;
+  webhook: {
+    delivered: boolean;
+    statusCode?: number;
+    error?: string;
+    attempts?: number;
+  } | null;
+}
+
+export interface CreateWatchRequest {
+  url: string;
+  schedule: WatchSchedule;
+  enabled?: boolean;
+  webhook?: WatchWebhookConfig | null;
+  notifyOn?: WatchChangeStatus[];
+  scrapeOptions?: Record<string, unknown> | null;
+  focus?: { query: string; maxTokens?: number } | null;
+  extractRules?: Record<string, unknown> | null;
+}
+
+export interface UpdateWatchRequest {
+  schedule?: WatchSchedule;
+  enabled?: boolean;
+  webhook?: WatchWebhookConfig | null;
+  notifyOn?: WatchChangeStatus[];
+  scrapeOptions?: Record<string, unknown> | null;
+  focus?: { query: string; maxTokens?: number } | null;
+  extractRules?: Record<string, unknown> | null;
+}
+
+export interface LocalProfileSummary {
+  name: string;
+  cookieCount: number;
+  originCount: number;
+  updatedAt: string;
+}
+
+export interface SnapshotSummary {
+  id: string;
+  url: string;
+  tag: string | null;
+  capturedAt: string;
+  statusCode: number | null;
+  contentHash: string;
+}
+
+export interface Snapshot extends SnapshotSummary {
+  markdown: string;
+}
+
+export interface SnapshotDiffResponse {
+  changeStatus: "changed" | "same";
+  from: SnapshotSummary;
+  to: SnapshotSummary;
+  diff?: { text: string; json?: unknown };
+  diffOmitted?: boolean;
 }

@@ -229,20 +229,28 @@ never returned by the API. `diff` is `null` when the diff is larger than
 | `POST /v2/watch` | Create a watch. |
 | `GET /v2/watch` | List watches. |
 | `GET /v2/watch/<id>` | One watch, with `lastStatus` and `nextRunAt`. |
+| `PATCH /v2/watch/<id>` | Update `schedule`, `enabled` (pause/resume), `webhook`, `notifyOn`, `scrapeOptions`, `focus`, or `extractRules` without losing history. |
 | `DELETE /v2/watch/<id>` | Delete it and its run history. |
 | `POST /v2/watch/<id>/run` | Run it now and return the result. |
 | `GET /v2/watch/<id>/runs` | Up to 50 recent runs, newest first. |
+
+Noise-free and customized watches:
+
+- `scrapeOptions`: pass `waitFor`, `mobile`, `location`, `proxy`, `actions`, `headers`, `includeTags`, `excludeTags`, `onlyMainContent`, `profile`, or `timeout` to each watch run.
+- `focus`: `{ "query": "...", "maxTokens": 1000 }` compares only the BM25-focused sections of the page so unrelated banners or footers do not trigger alerts.
+- `extractRules`: declarative CSS/regex/transform rules (same syntax as the `structured` format below). Tracks only the extracted fields, ignores surrounding HTML noise, and includes `extracted` and `fieldChanges` (`[{ path, before, after }]`) on both the run and the webhook payload.
 
 | Variable | Default | Effect |
 | --- | --- | --- |
 | `WATCH_POLL_INTERVAL_MS` | `15000` | How often the worker looks for due watches. |
 | `WATCH_MIN_INTERVAL_SECONDS` | `60` | Shortest schedule allowed. |
 | `WATCH_MAX_PER_TEAM` | `200` | Watches allowed. |
+| `WATCH_WEBHOOK_MAX_ATTEMPTS` | `3` | Delivery attempts for transient 5xx/429/network webhook failures. |
+| `WATCH_WEBHOOK_RETRY_BASE_MS` | `1000` | Initial retry backoff in milliseconds (doubles each attempt). |
 
 Limits to know:
 
-- A failed webhook delivery is recorded on the run (`webhook.delivered:
-  false`) and is not retried. The next change sends a new one.
+- Transient webhook failures (5xx, 429, network errors) are retried with exponential backoff up to `WATCH_WEBHOOK_MAX_ATTEMPTS` times; `webhook.attempts` records how many tries were made. Permanent 4xx errors are not retried.
 - Runs missed while the stack was down are not replayed: a due watch runs
   once when the worker returns.
 - Watches and run history live in Redis, like snapshots.
@@ -264,6 +272,70 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
   "formats": [{"type": "focus", "query": "rate limits per API key", "maxTokens": 800}]
 }'
 ```
+
+### Zero-LLM structured extraction (`structured` format)
+
+Extracts structured JSON directly from HTML in milliseconds with no model call.
+
+- **Auto-discovery (`"formats": ["structured"]`)**: automatically parses JSON-LD (`@graph` flattened), OpenGraph (`og:*`), Twitter Cards (`twitter:*`), HTML `<table>`s into header-keyed row objects, and RSS/Atom/JSON feed links.
+- **Declarative CSS rules (`rules`)**: extracts single values, arrays (`all: true`), nested repeating objects (`fields`), attributes (`attr`), regex capture groups (`regex`), and typed transforms (`trim`, `number`, `integer`, `boolean`, `url`, `lowercase`, `uppercase`).
+
+```bash
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://example.com/catalog",
+  "formats": [{
+    "type": "structured",
+    "rules": {
+      "title": "h1",
+      "items": {
+        "selector": ".product",
+        "all": true,
+        "fields": {
+          "name": "h2",
+          "price": {"selector": ".price", "transform": "number"},
+          "url": {"selector": "a", "attr": "href", "transform": "url"}
+        }
+      }
+    }
+  }]
+}'
+```
+
+### Persistent browser profiles (`profile`)
+
+Named browser profiles store Playwright's cookies and `localStorage` in Redis
+(gzipped, 2 MB cap), so you can authenticate once with `actions` and reuse the
+session across later scrapes, crawls, and watches without Hangar or Fire-engine.
+
+```bash
+# 1. Log in and save the profile
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://app.example.com/login",
+  "profile": {"name": "my-portal", "saveChanges": true},
+  "actions": [
+    {"type": "write", "selector": "#email", "text": "me@example.com"},
+    {"type": "click", "selector": "button[type=submit]"},
+    {"type": "wait", "milliseconds": 1000}
+  ]
+}'
+
+# 2. Reuse the authenticated session on subsequent scrapes
+curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
+  "url": "https://app.example.com/dashboard",
+  "profile": {"name": "my-portal", "saveChanges": false}
+}'
+```
+
+| Route | Does |
+| --- | --- |
+| `GET /v2/profiles` | List saved browser profiles (metadata only; cookie values are not returned). |
+| `GET /v2/profiles/<name>` | Get one profile's metadata (`cookieCount`, `originCount`, `sizeBytes`, `updatedAt`). |
+| `DELETE /v2/profiles/<name>` | Delete a saved profile (also supported via `DELETE /v2/browser/profiles/<name>`). |
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `LOCAL_PROFILE_STORE_ENABLED` | on without DB auth and Hangar | Forces the local profile store on or off. |
+| `LOCAL_PROFILE_TTL_DAYS` | `30` | Days an idle profile survives in Redis; `0` keeps it. |
 
 ### Page cache
 

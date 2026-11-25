@@ -51,6 +51,25 @@ import {
   runMonitor as runMonitorMethod,
   updateMonitor as updateMonitorMethod,
 } from "./methods/monitor";
+import {
+  createWatch as createWatchMethod,
+  listWatches as listWatchesMethod,
+  getWatch as getWatchMethod,
+  updateWatch as updateWatchMethod,
+  deleteWatch as deleteWatchMethod,
+  runWatch as runWatchMethod,
+  listWatchRuns as listWatchRunsMethod,
+} from "./methods/watch";
+import {
+  listProfiles as listProfilesMethod,
+  getProfile as getProfileMethod,
+  deleteProfile as deleteProfileMethod,
+} from "./methods/profiles";
+import {
+  listSnapshots as listSnapshotsMethod,
+  getSnapshot as getSnapshotMethod,
+  diffSnapshots as diffSnapshotsMethod,
+} from "./methods/snapshots";
 import type {
   Document,
   AlexandriaScrapeRequest,
@@ -106,6 +125,14 @@ import type {
   MonitorCheckDetail,
   GetMonitorCheckOptions,
   UpdateMonitorRequest,
+  CreateWatchRequest,
+  UpdateWatchRequest,
+  Watch,
+  WatchRun,
+  LocalProfileSummary,
+  Snapshot,
+  SnapshotSummary,
+  SnapshotDiffResponse,
 } from "./types";
 import { defaultOrigin } from "../utils/callerOrigin";
 import { getVersion } from "./utils/getVersion";
@@ -798,6 +825,58 @@ export class FirecrawlClient {
   /** @deprecated v1 alias for getBatchScrapeErrors(); its result also carries v1's `success: true`. */
   async checkBatchScrapeErrors(jobId: string): Promise<V1Result<CrawlErrorsResponse>> {
     return callV1(() => this.getBatchScrapeErrors(jobId));
+  }
+
+  async createWatch(request: CreateWatchRequest): Promise<Watch> {
+    return createWatchMethod(this.http, request);
+  }
+
+  async listWatches(): Promise<Watch[]> {
+    return listWatchesMethod(this.http);
+  }
+
+  async getWatch(watchId: string): Promise<Watch> {
+    return getWatchMethod(this.http, watchId);
+  }
+
+  async updateWatch(watchId: string, request: UpdateWatchRequest): Promise<Watch> {
+    return updateWatchMethod(this.http, watchId, request);
+  }
+
+  async deleteWatch(watchId: string): Promise<{ success: boolean }> {
+    return deleteWatchMethod(this.http, watchId);
+  }
+
+  async runWatch(watchId: string): Promise<WatchRun> {
+    return runWatchMethod(this.http, watchId);
+  }
+
+  async listWatchRuns(watchId: string, limit?: number): Promise<WatchRun[]> {
+    return listWatchRunsMethod(this.http, watchId, limit);
+  }
+
+  async listProfiles(): Promise<LocalProfileSummary[]> {
+    return listProfilesMethod(this.http);
+  }
+
+  async getProfile(name: string): Promise<LocalProfileSummary> {
+    return getProfileMethod(this.http, name);
+  }
+
+  async deleteProfile(name: string): Promise<{ success: boolean }> {
+    return deleteProfileMethod(this.http, name);
+  }
+
+  async listSnapshots(options: { url: string; tag?: string; limit?: number }): Promise<SnapshotSummary[]> {
+    return listSnapshotsMethod(this.http, options);
+  }
+
+  async getSnapshot(snapshotId: string): Promise<Snapshot> {
+    return getSnapshotMethod(this.http, snapshotId);
+  }
+
+  async diffSnapshots(from: string, to: string): Promise<SnapshotDiffResponse> {
+    return diffSnapshotsMethod(this.http, from, to);
   }
 }
 

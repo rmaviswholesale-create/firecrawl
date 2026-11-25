@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { getRedisConnection } from "../services/queue-service";
+import type { ExtractRule, FieldChange } from "./structured-extract";
 
 /**
  * Watches: a URL re-scraped on a schedule, with a webhook when it changes.
@@ -9,6 +10,7 @@ import { getRedisConnection } from "../services/queue-service";
  *   watch:idx:<team>        set of the team's watch ids
  *   watch:due               sorted set of "<team>:<id>", scored by next run
  *   watch:runs:<team>:<id>  list of recent runs, newest first
+ *   watch:state:<team>:<id> last extracted structured payload (for rule watches)
  *   watch:lock:<team>:<id>  held while a run is in progress
  */
 
@@ -18,16 +20,42 @@ export type WatchSchedule =
 
 export type ChangeStatus = "new" | "same" | "changed" | "removed";
 
+export type WatchScrapeOptions = {
+  waitFor?: number;
+  mobile?: boolean;
+  location?: { country?: string; languages?: string[] };
+  proxy?: "basic" | "stealth" | "enhanced" | "auto";
+  actions?: unknown[];
+  headers?: Record<string, string>;
+  includeTags?: string[];
+  excludeTags?: string[];
+  onlyMainContent?: boolean;
+  profile?: { name: string; saveChanges?: boolean };
+  timeout?: number;
+};
+
+export type WatchFocusConfig = {
+  query: string;
+  maxTokens?: number;
+};
+
 export type Watch = {
   id: string;
   url: string;
   schedule: WatchSchedule;
+  /** When false, the scheduler skips this watch until re-enabled. Defaults to true. */
+  enabled?: boolean;
   webhook: {
     url: string;
     headers?: Record<string, string>;
     secret?: string;
   } | null;
   notifyOn: ChangeStatus[];
+  scrapeOptions?: WatchScrapeOptions | null;
+  /** Optional BM25 focus filter: track changes only in matching sections. */
+  focus?: WatchFocusConfig | null;
+  /** Optional deterministic CSS extraction rules: track & diff only extracted fields. */
+  extractRules?: Record<string, ExtractRule> | null;
   createdAt: string;
   lastRunAt: string | null;
   lastStatus: ChangeStatus | "error" | null;
@@ -44,11 +72,16 @@ export type WatchRun = {
   comparedTo: { snapshotId: string; capturedAt: string } | null;
   /** Unified diff, when the page changed and the diff was small enough. */
   diff: string | null;
+  /** Extracted structured values when the watch has extractRules. */
+  extracted?: Record<string, unknown> | null;
+  /** Leaf-level field diffs when the watch has extractRules and values changed. */
+  fieldChanges?: FieldChange[] | null;
   error: string | null;
   webhook: {
     delivered: boolean;
     statusCode?: number;
     error?: string;
+    attempts?: number;
   } | null;
 };
 
@@ -59,6 +92,7 @@ const RUN_LOCK_MS = 5 * 60_000;
 const defKey = (teamId: string, id: string) => `watch:def:${teamId}:${id}`;
 const idxKey = (teamId: string) => `watch:idx:${teamId}`;
 const runsKey = (teamId: string, id: string) => `watch:runs:${teamId}:${id}`;
+const stateKey = (teamId: string, id: string) => `watch:state:${teamId}:${id}`;
 const lockKey = (teamId: string, id: string) => `watch:lock:${teamId}:${id}`;
 const DUE_KEY = "watch:due";
 // Watch ids are UUIDs, so the last ":" always separates team from id.
@@ -73,16 +107,20 @@ export async function countWatches(teamId: string): Promise<number> {
 }
 
 export async function saveWatch(teamId: string, watch: Watch): Promise<void> {
-  await getRedisConnection()
+  const multi = getRedisConnection()
     .multi()
     .set(defKey(teamId, watch.id), JSON.stringify(watch))
-    .sadd(idxKey(teamId), watch.id)
-    .zadd(
+    .sadd(idxKey(teamId), watch.id);
+  if (watch.enabled === false) {
+    multi.zrem(DUE_KEY, dueMember(teamId, watch.id));
+  } else {
+    multi.zadd(
       DUE_KEY,
       new Date(watch.nextRunAt).getTime(),
       dueMember(teamId, watch.id),
-    )
-    .exec();
+    );
+  }
+  await multi.exec();
 }
 
 export async function getWatch(
@@ -111,8 +149,32 @@ export async function deleteWatch(
     .srem(idxKey(teamId), id)
     .zrem(DUE_KEY, dueMember(teamId, id))
     .del(runsKey(teamId, id))
+    .del(stateKey(teamId, id))
     .exec();
   return Number(results?.[0]?.[1] ?? 0) > 0;
+}
+
+export async function getWatchExtractedState(
+  teamId: string,
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const raw = await getRedisConnection().get(stateKey(teamId, id));
+  return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+}
+
+export async function saveWatchExtractedState(
+  teamId: string,
+  id: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  await getRedisConnection().set(stateKey(teamId, id), JSON.stringify(data));
+}
+
+export async function clearWatchExtractedState(
+  teamId: string,
+  id: string,
+): Promise<void> {
+  await getRedisConnection().del(stateKey(teamId, id));
 }
 
 export async function recordWatchRun(

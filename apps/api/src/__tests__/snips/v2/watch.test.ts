@@ -21,11 +21,13 @@ let identity: Identity;
 let server: http.Server;
 let base: string;
 const prices = new Map<string, string>();
+const noise = new Map<string, string>();
+const flakyHookFailsLeft = new Map<string, number>();
 const deliveries = new Map<string, Delivery[]>();
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const api = (method: "get" | "post" | "delete", path: string) =>
+const api = (method: "get" | "post" | "patch" | "delete", path: string) =>
   request(TEST_API_URL)
     [method](path)
     .set("Authorization", `Bearer ${identity.apiKey}`)
@@ -58,6 +60,12 @@ beforeAll(async () => {
       const chunks: Buffer[] = [];
       req.on("data", chunk => chunks.push(chunk));
       req.on("end", () => {
+        const failsLeft = flakyHookFailsLeft.get(key) ?? 0;
+        if (failsLeft > 0) {
+          flakyHookFailsLeft.set(key, failsLeft - 1);
+          res.writeHead(500).end("temporary failure");
+          return;
+        }
         const rawBody = Buffer.concat(chunks).toString("utf8");
         const list = deliveries.get(key) ?? [];
         list.push({
@@ -73,7 +81,8 @@ beforeAll(async () => {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(
       `<!doctype html><html><head><title>Plan</title></head><body><main>` +
-        `<h1>Plan</h1><p>The plan costs ${prices.get(key) ?? "$10"} per month.</p>` +
+        `<h1>Plan</h1><p>The plan costs <span class="price">${prices.get(key) ?? "$10"}</span> per month.</p>` +
+        `<footer class="noise">${noise.get(key) ?? "banner-1"}</footer>` +
         `</main></body></html>`,
     );
   });
@@ -231,5 +240,127 @@ describe("Watches", () => {
       expect((await api("get", "/v2/watch/not-a-uuid")).statusCode).toBe(400);
     },
     scrapeTimeout,
+  );
+
+  itIf(LOCAL_WATCH)(
+    "ignores surrounding noise with extractRules, emits fieldChanges, retries flaky webhooks, and supports PATCH",
+    async () => {
+      const key = crypto.randomUUID();
+      prices.set(key, "$10");
+      noise.set(key, "banner-v1");
+
+      const created = await api("post", "/v2/watch").send({
+        url: `${base}/page/${key}`,
+        schedule: { cron: "0 3 * * *" },
+        webhook: { url: `${base}/hook/${key}`, secret: "keep-me" },
+        extractRules: {
+          price: { selector: ".price", transform: "number" },
+        },
+      });
+      expect(created.statusCode).toBe(200);
+      const id = created.body.watch.id as string;
+
+      try {
+        // First run establishes baseline.
+        const r1 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r1.statusCode).toBe(200);
+        expect(r1.body.run.changeStatus).toBe("new");
+        expect(r1.body.run.extracted).toEqual({ price: 10 });
+
+        // Changing unrelated footer noise does NOT trigger a change.
+        noise.set(key, "banner-v2-completely-different-timestamp");
+        const r2 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r2.body.run.changeStatus).toBe("same");
+        expect(r2.body.run.fieldChanges).toEqual([]);
+        expect(deliveries.get(key)).toBeUndefined();
+
+        // Changing the tracked price triggers a change with fieldChanges, and retries a 500 webhook.
+        prices.set(key, "$29.50");
+        flakyHookFailsLeft.set(key, 1);
+        const r3 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r3.body.run.changeStatus).toBe("changed");
+        expect(r3.body.run.extracted).toEqual({ price: 29.5 });
+        expect(r3.body.run.fieldChanges).toEqual([
+          { path: "price", before: 10, after: 29.5 },
+        ]);
+        expect(r3.body.run.webhook).toMatchObject({
+          delivered: true,
+          statusCode: 200,
+          attempts: 2,
+        });
+
+        const sent = deliveries.get(key) ?? [];
+        expect(sent).toHaveLength(1);
+        expect(sent[0].body.fieldChanges).toEqual([
+          { path: "price", before: 10, after: 29.5 },
+        ]);
+
+        // PATCH pauses the watch and preserves the webhook secret when updating URL.
+        const patched = await api("patch", `/v2/watch/${id}`).send({
+          enabled: false,
+          webhook: { url: `${base}/hook/${key}` },
+        });
+        expect(patched.statusCode).toBe(200);
+        expect(patched.body.watch.enabled).toBe(false);
+        expect(patched.body.watch.webhook.hasSecret).toBe(true);
+      } finally {
+        await api("delete", `/v2/watch/${id}`);
+      }
+    },
+    3 * scrapeTimeout,
+  );
+
+  itIf(LOCAL_WATCH)(
+    "resets extracted baseline when extractRules are updated via PATCH",
+    async () => {
+      const key = crypto.randomUUID();
+      prices.set(key, "$10");
+      noise.set(key, "banner-v1");
+
+      const created = await api("post", "/v2/watch").send({
+        url: `${base}/page/${key}`,
+        schedule: { cron: "0 3 * * *" },
+        webhook: { url: `${base}/hook/${key}` },
+        extractRules: {
+          price: { selector: ".price", transform: "number" },
+        },
+      });
+      expect(created.statusCode).toBe(200);
+      const id = created.body.watch.id as string;
+
+      try {
+        // Establish baseline with initial extractRules.
+        const r1 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r1.statusCode).toBe(200);
+        expect(r1.body.run.changeStatus).toBe("new");
+        expect(r1.body.run.extracted).toEqual({ price: 10 });
+
+        // Update extractRules without changing the page itself.
+        const patched = await api("patch", `/v2/watch/${id}`).send({
+          extractRules: {
+            footer: { selector: ".noise" },
+          },
+        });
+        expect(patched.statusCode).toBe(200);
+
+        // Next run must establish a fresh baseline ("new") rather than diffing
+        // against the previous rules' extracted state and reporting "changed".
+        const r2 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r2.statusCode).toBe(200);
+        expect(r2.body.run.changeStatus).toBe("new");
+        expect(r2.body.run.fieldChanges).toEqual([]);
+        expect(r2.body.run.extracted).toEqual({ footer: "banner-v1" });
+        expect(deliveries.get(key)).toBeUndefined();
+
+        // Subsequent run with unchanged page reports "same".
+        const r3 = await api("post", `/v2/watch/${id}/run`).send();
+        expect(r3.statusCode).toBe(200);
+        expect(r3.body.run.changeStatus).toBe("same");
+        expect(r3.body.run.fieldChanges).toEqual([]);
+      } finally {
+        await api("delete", `/v2/watch/${id}`);
+      }
+    },
+    3 * scrapeTimeout,
   );
 });

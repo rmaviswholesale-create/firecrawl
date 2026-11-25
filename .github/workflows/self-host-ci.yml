@@ -176,7 +176,7 @@ jobs:
           npm_config_ignore_scripts: 'true'
 
       - name: Run self-host unit tests
-        run: pnpm exec vitest run src/lib/self-hosted-auth.test.ts src/lib/change-tracking-diff.test.ts --reporter=default
+        run: pnpm exec vitest run src/lib/self-hosted-auth.test.ts src/lib/change-tracking-diff.test.ts src/lib/structured-extract.test.ts src/search/v2/index.test.ts --reporter=default
         working-directory: apps/api
 
       - name: Install test site dependencies
@@ -210,8 +210,10 @@ jobs:
         run: >-
           pnpm harness pnpm exec vitest run
           src/__tests__/snips/v2/local-browser.test.ts
+          src/__tests__/snips/v2/local-profiles.test.ts
           src/__tests__/snips/v2/snapshots.test.ts
           src/__tests__/snips/v2/scrape-focus.test.ts
+          src/__tests__/snips/v2/scrape-structured.test.ts
           src/__tests__/snips/v2/local-cache.test.ts
           src/__tests__/snips/v2/self-hosted-auth.test.ts
           src/__tests__/snips/v2/watch.test.ts
@@ -221,6 +223,7 @@ jobs:
         working-directory: apps/api
         env:
           npm_config_ignore_scripts: 'true' # required currently to prevent re-building cached native lib
+          WATCH_WEBHOOK_RETRY_BASE_MS: '50'
 
       - name: Copy log files
         if: always()

@@ -1196,3 +1196,59 @@ class AsyncFirecrawlClient:
         timeout: Optional[int] = None,
     ) -> AsyncWatcher:
         return AsyncWatcher(self, job_id, kind=kind, poll_interval=poll_interval, timeout=timeout)
+
+    async def create_watch(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.create_watch(self.async_http_client, request)
+
+    async def list_watches(self) -> List[Dict[str, Any]]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.list_watches(self.async_http_client)
+
+    async def get_watch(self, watch_id: str) -> Dict[str, Any]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.get_watch(self.async_http_client, watch_id)
+
+    async def update_watch(self, watch_id: str, request: Dict[str, Any]) -> Dict[str, Any]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.update_watch(self.async_http_client, watch_id, request)
+
+    async def delete_watch(self, watch_id: str) -> Dict[str, Any]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.delete_watch(self.async_http_client, watch_id)
+
+    async def run_watch(self, watch_id: str) -> Dict[str, Any]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.run_watch(self.async_http_client, watch_id)
+
+    async def list_watch_runs(
+        self, watch_id: str, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        from .methods.aio import watch as async_watch
+        return await async_watch.list_watch_runs(self.async_http_client, watch_id, limit=limit)
+
+    async def list_profiles(self) -> List[Dict[str, Any]]:
+        from .methods.aio import profiles as async_profiles
+        return await async_profiles.list_profiles(self.async_http_client)
+
+    async def get_profile(self, name: str) -> Dict[str, Any]:
+        from .methods.aio import profiles as async_profiles
+        return await async_profiles.get_profile(self.async_http_client, name)
+
+    async def delete_profile(self, name: str) -> Dict[str, Any]:
+        from .methods.aio import profiles as async_profiles
+        return await async_profiles.delete_profile(self.async_http_client, name)
+
+    async def list_snapshots(
+        self, url: str, tag: Optional[str] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        from .methods.aio import snapshots as async_snapshots
+        return await async_snapshots.list_snapshots(self.async_http_client, url, tag=tag, limit=limit)
+
+    async def get_snapshot(self, snapshot_id: str) -> Dict[str, Any]:
+        from .methods.aio import snapshots as async_snapshots
+        return await async_snapshots.get_snapshot(self.async_http_client, snapshot_id)
+
+    async def diff_snapshots(self, from_id: str, to_id: str) -> Dict[str, Any]:
+        from .methods.aio import snapshots as async_snapshots
+        return await async_snapshots.diff_snapshots(self.async_http_client, from_id, to_id)

@@ -45,7 +45,13 @@ import {
   watchListController,
   watchRunController,
   watchRunsController,
+  watchUpdateController,
 } from "../controllers/v2/watch";
+import {
+  profileDeleteController,
+  profileGetController,
+  profileListController,
+} from "../controllers/v2/profiles";
 import { creditUsageController } from "../controllers/v2/credit-usage";
 import { tokenUsageController } from "../controllers/v2/token-usage";
 import { crawlCancelController } from "../controllers/v2/crawl-cancel";
@@ -317,6 +323,12 @@ v2Router.get(
   wrap(watchGetController),
 );
 
+v2Router.patch(
+  "/watch/:watchId",
+  authMiddleware(RateLimiterMode.Scrape),
+  wrap(watchUpdateController),
+);
+
 v2Router.delete(
   "/watch/:watchId",
   authMiddleware(RateLimiterMode.CrawlStatus),
@@ -333,6 +345,24 @@ v2Router.get(
   "/watch/:watchId/runs",
   authMiddleware(RateLimiterMode.CrawlStatus),
   wrap(watchRunsController),
+);
+
+v2Router.get(
+  "/profiles",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(profileListController),
+);
+
+v2Router.get(
+  "/profiles/:name",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(profileGetController),
+);
+
+v2Router.delete(
+  "/profiles/:name",
+  authMiddleware(RateLimiterMode.CrawlStatus),
+  wrap(profileDeleteController),
 );
 
 v2Router.get(
