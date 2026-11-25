@@ -19,6 +19,7 @@ import { performAttributes } from "./performAttributes";
 
 import { deriveDiff } from "./diff";
 import { performFocus } from "./focus";
+import { performStructuredExtract } from "./structured";
 import { fetchAudio } from "./audio";
 import { fetchProduct } from "./product";
 import { fetchMenu } from "./menu";
@@ -428,6 +429,10 @@ function coerceFieldsToFormats(meta: Meta, document: Document): Document {
     delete document.focus;
   }
 
+  if (!hasFormatOfType(meta.options.formats, "structured")) {
+    delete document.structured;
+  }
+
   if (!hasLinks && document.links !== undefined) {
     meta.logger.warn(
       "Removed links from Document because it wasn't in formats -- this is wasteful and indicates a bug.",
@@ -653,6 +658,7 @@ const transformerStack: Transformer[] = [
   performQuery,
   performAttributes,
   performFocus,
+  performStructuredExtract,
   performAgent,
   removeBase64Images,
   deriveDiff,

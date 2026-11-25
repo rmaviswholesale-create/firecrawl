@@ -11,6 +11,7 @@ export type FormatString =
   | "summary"
   | "changeTracking"
   | "network"
+  | "structured"
   | "json"
   | "attributes"
   | "branding"
@@ -89,6 +90,34 @@ export interface FocusFormat {
   maxTokens?: number;
 }
 
+export type ExtractTransform =
+  | "trim"
+  | "number"
+  | "integer"
+  | "boolean"
+  | "url"
+  | "lowercase"
+  | "uppercase";
+
+export type ExtractRule =
+  | string
+  | {
+      selector: string;
+      attr?: string;
+      all?: boolean;
+      regex?: string;
+      transform?: ExtractTransform;
+      fields?: Record<string, ExtractRule>;
+    };
+
+/** Deterministic, zero-LLM structured extraction (auto-discovery + CSS rules). */
+export interface StructuredFormat {
+  type: "structured";
+  rules?: Record<string, ExtractRule>;
+  includeAuto?: boolean;
+  includeTables?: boolean;
+}
+
 export interface NetworkCaptureEntry {
   url: string;
   method: string;
@@ -115,6 +144,23 @@ export interface FocusResult {
   estimatedTokens: number;
   sourceEstimatedTokens: number;
   sections: { heading: string | null; score: number }[];
+}
+
+export interface StructuredResult {
+  data?: Record<string, unknown>;
+  jsonLd?: unknown[];
+  openGraph?: Record<string, string>;
+  twitter?: Record<string, string>;
+  tables?: Array<{
+    caption?: string;
+    headers: string[];
+    rows: Record<string, string>[];
+  }>;
+  feeds?: Array<{
+    title?: string;
+    type: string;
+    href: string;
+  }>;
 }
 export interface AttributesFormat extends Format {
   type: "attributes";
@@ -149,6 +195,7 @@ export type FormatOption =
   | ScreenshotFormat
   | NetworkFormat
   | FocusFormat
+  | StructuredFormat
   | AttributesFormat
   | QuestionFormat
   | HighlightsFormat
@@ -807,6 +854,7 @@ export interface Document {
   changeTracking?: Record<string, unknown>;
   network?: NetworkCapture;
   focus?: FocusResult;
+  structured?: StructuredResult;
   branding?: BrandingProfile;
   product?: ProductProfile;
   menu?: MenuProfile;

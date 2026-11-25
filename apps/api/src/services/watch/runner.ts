@@ -2,17 +2,25 @@ import crypto from "crypto";
 import undici from "undici";
 import { config } from "../../config";
 import { scrapeOptions } from "../../controllers/v2/types";
+import { createMarkdownChangeDiff } from "../../lib/change-tracking-diff";
 import { CostTracking } from "../../lib/cost-tracking";
 import { logger as _logger } from "../../lib/logger";
+import {
+  getLatestSnapshot,
+  recordSnapshot,
+} from "../../lib/snapshot-store";
+import { diffStructuredValues } from "../../lib/structured-extract";
 import {
   type ChangeStatus,
   type Watch,
   type WatchRun,
   type WatchSchedule,
   getWatch,
+  getWatchExtractedState,
   lockWatch,
   recordWatchRun,
   saveWatch,
+  saveWatchExtractedState,
 } from "../../lib/watch-store";
 import { scrapeURL } from "../../scraper/scrapeURL";
 import {
@@ -34,6 +42,10 @@ export function nextRunAt(schedule: WatchSchedule, from: Date): Date {
     : new Date(from.getTime() + schedule.everySeconds * 1000);
 }
 
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
 async function deliverWebhook(
   webhook: NonNullable<Watch["webhook"]>,
   payload: unknown,
@@ -42,7 +54,11 @@ async function deliverWebhook(
     isIPPrivate(new URL(webhook.url).hostname) &&
     config.ALLOW_LOCAL_WEBHOOKS !== true
   ) {
-    return { delivered: false, error: "Webhook URL is a private address" };
+    return {
+      delivered: false,
+      attempts: 0,
+      error: "Webhook URL is a private address",
+    };
   }
 
   const body = JSON.stringify(payload);
@@ -56,27 +72,54 @@ async function deliverWebhook(
       crypto.createHmac("sha256", webhook.secret).update(body).digest("hex");
   }
 
-  try {
-    const response = await undici.fetch(webhook.url, {
-      method: "POST",
-      headers,
-      body,
-      dispatcher: getSecureDispatcherNoCookies(),
-      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-    });
-    return response.ok
-      ? { delivered: true, statusCode: response.status }
-      : {
-          delivered: false,
+  const maxAttempts = config.WATCH_WEBHOOK_MAX_ATTEMPTS;
+  const baseDelayMs = config.WATCH_WEBHOOK_RETRY_BASE_MS;
+  let lastResult: NonNullable<WatchRun["webhook"]> = {
+    delivered: false,
+    attempts: 0,
+    error: "Webhook delivery did not run",
+  };
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await undici.fetch(webhook.url, {
+        method: "POST",
+        headers,
+        body,
+        dispatcher: getSecureDispatcherNoCookies(),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+      });
+      if (response.ok) {
+        return {
+          delivered: true,
           statusCode: response.status,
-          error: `Webhook responded with ${response.status}`,
+          attempts: attempt,
         };
-  } catch (error) {
-    return {
-      delivered: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+      }
+      lastResult = {
+        delivered: false,
+        statusCode: response.status,
+        attempts: attempt,
+        error: `Webhook responded with ${response.status}`,
+      };
+      if (!isRetryableStatus(response.status)) {
+        return lastResult;
+      }
+    } catch (error) {
+      lastResult = {
+        delivered: false,
+        attempts: attempt,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+
+    if (attempt < maxAttempts) {
+      const delayMs = baseDelayMs * 2 ** (attempt - 1);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
+
+  return lastResult;
 }
 
 /**
@@ -111,21 +154,48 @@ export async function runWatch(
     };
 
     try {
+      const hasExtractRules = Boolean(
+        watch.extractRules && Object.keys(watch.extractRules).length > 0,
+      );
+      const hasFocus = Boolean(watch.focus?.query);
+      const watchTag = "watch:" + watch.id;
+
+      const formats: unknown[] = ["markdown"];
+      if (hasExtractRules) {
+        formats.push({
+          type: "structured",
+          rules: watch.extractRules,
+          includeAuto: false,
+        });
+      }
+      if (hasFocus && watch.focus) {
+        formats.push({
+          type: "focus",
+          query: watch.focus.query,
+          ...(watch.focus.maxTokens !== undefined
+            ? { maxTokens: watch.focus.maxTokens }
+            : {}),
+        });
+      }
+      // Plain markdown watches use the built-in changeTracking transformer.
+      // Rule-based and focus-scoped watches compute change status from their
+      // noise-free extracted content below.
+      if (!hasExtractRules && !hasFocus) {
+        formats.push({
+          type: "changeTracking",
+          modes: ["git-diff"],
+          tag: watchTag,
+        });
+      }
+
+      const opts = watch.scrapeOptions ?? {};
       const response = await scrapeURL(
         "watch;" + run.id,
         watch.url,
         scrapeOptions.parse({
-          formats: [
-            "markdown",
-            // Each watch keeps its own history, apart from ad-hoc scrapes of
-            // the same URL.
-            {
-              type: "changeTracking",
-              modes: ["git-diff"],
-              tag: "watch:" + watch.id,
-            },
-          ],
-          timeout: SCRAPE_TIMEOUT_MS,
+          ...opts,
+          formats,
+          timeout: opts.timeout ?? SCRAPE_TIMEOUT_MS,
           maxAge: 0,
         }),
         { teamId, orgId: null },
@@ -133,17 +203,87 @@ export async function runWatch(
       );
       if (!response.success) throw response.error;
 
-      const tracking = response.document.changeTracking;
-      if (!tracking) {
-        throw new Error(
-          response.document.warning ?? "Change tracking produced no result",
-        );
+      const doc = response.document;
+      const statusCode = doc.metadata?.statusCode ?? null;
+
+      if (hasExtractRules) {
+        const extracted = doc.structured?.data ?? {};
+        run.extracted = extracted;
+        const previous = await getWatchExtractedState(teamId, watch.id);
+        if (statusCode === 404 || statusCode === 410) {
+          run.changeStatus = "removed";
+        } else if (previous === null) {
+          run.changeStatus = "new";
+          run.fieldChanges = [];
+        } else {
+          const changes = diffStructuredValues(previous, extracted);
+          run.fieldChanges = changes;
+          run.changeStatus = changes.length > 0 ? "changed" : "same";
+          if (changes.length > 0) {
+            const diff = createMarkdownChangeDiff(
+              JSON.stringify(previous, null, 2),
+              JSON.stringify(extracted, null, 2),
+            );
+            run.diff =
+              diff?.text && diff.text.length <= MAX_DIFF_CHARS
+                ? diff.text
+                : null;
+          }
+        }
+        if (run.changeStatus !== "removed") {
+          await saveWatchExtractedState(teamId, watch.id, extracted);
+        }
+      } else if (hasFocus) {
+        const focusedMarkdown = doc.focus?.markdown ?? "";
+        const scope = { teamId, url: watch.url, tag: watchTag + ":focus" };
+        const previous = await getLatestSnapshot(scope);
+        if (statusCode === 404 || statusCode === 410) {
+          run.changeStatus = "removed";
+          if (previous) {
+            run.comparedTo = {
+              snapshotId: previous.id,
+              capturedAt: previous.capturedAt,
+            };
+          }
+        } else {
+          const { snapshot, created } = await recordSnapshot(scope, {
+            markdown: focusedMarkdown,
+            statusCode,
+          });
+          run.snapshotId = snapshot.id;
+          if (!previous) {
+            run.changeStatus = "new";
+          } else {
+            run.comparedTo = {
+              snapshotId: previous.id,
+              capturedAt: previous.capturedAt,
+            };
+            run.changeStatus = created ? "changed" : "same";
+            if (created) {
+              const diff = createMarkdownChangeDiff(
+                previous.markdown,
+                focusedMarkdown,
+              );
+              run.diff =
+                diff?.text && diff.text.length <= MAX_DIFF_CHARS
+                  ? diff.text
+                  : null;
+            }
+          }
+        }
+      } else {
+        const tracking = doc.changeTracking;
+        if (!tracking) {
+          throw new Error(
+            doc.warning ?? "Change tracking produced no result",
+          );
+        }
+        run.changeStatus = tracking.changeStatus as ChangeStatus;
+        run.snapshotId = tracking.snapshotId ?? null;
+        run.comparedTo = tracking.comparedTo ?? null;
+        const diff = tracking.diff?.text;
+        run.diff = diff && diff.length <= MAX_DIFF_CHARS ? diff : null;
       }
-      run.changeStatus = tracking.changeStatus as ChangeStatus;
-      run.snapshotId = tracking.snapshotId ?? null;
-      run.comparedTo = tracking.comparedTo ?? null;
-      const diff = tracking.diff?.text;
-      run.diff = diff && diff.length <= MAX_DIFF_CHARS ? diff : null;
     } catch (error) {
       run.error = error instanceof Error ? error.message : String(error);
       logger.warn("Watch run failed", { teamId, watchId: id, error });
@@ -164,6 +304,10 @@ export async function runWatch(
         snapshotId: run.snapshotId,
         comparedTo: run.comparedTo,
         diff: run.diff,
+        ...(run.extracted !== undefined ? { extracted: run.extracted } : {}),
+        ...(run.fieldChanges !== undefined
+          ? { fieldChanges: run.fieldChanges }
+          : {}),
       });
     }
 
@@ -171,13 +315,14 @@ export async function runWatch(
     run.finishedAt = finishedAt.toISOString();
     await recordWatchRun(teamId, id, run);
 
-    // The watch may have been deleted while it ran; do not bring it back.
-    if (await getWatch(teamId, id)) {
+    // The watch may have been deleted or modified while it ran; re-read it.
+    const latest = await getWatch(teamId, id);
+    if (latest) {
       await saveWatch(teamId, {
-        ...watch,
+        ...latest,
         lastRunAt: run.finishedAt,
         lastStatus: run.changeStatus ?? "error",
-        nextRunAt: nextRunAt(watch.schedule, finishedAt).toISOString(),
+        nextRunAt: nextRunAt(latest.schedule, finishedAt).toISOString(),
       });
     }
     return run;

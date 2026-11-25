@@ -41,6 +41,7 @@ import {
   isLocalCacheable,
   setLocalCache,
 } from "../../../lib/local-cache";
+import { localProfileStoreEnabled } from "../../../lib/local-profile-store";
 import type { PdfMetadata, PdfPageBlocks } from "./pdf/types";
 import { BrandingProfile } from "../../../types/branding";
 import {
@@ -1029,6 +1030,7 @@ export async function buildFallbackList(meta: Meta): Promise<
     if (
       meta.options.profile &&
       !engine.includes("chrome-cdp") &&
+      !(engine === "playwright" && localProfileStoreEnabled) &&
       !(engine === "pdf" && meta.pdfPrefetch) &&
       !(engine === "document" && meta.documentPrefetch) &&
       !(engine === "image" && meta.imagePrefetch)

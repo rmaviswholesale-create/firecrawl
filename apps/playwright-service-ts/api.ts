@@ -219,7 +219,28 @@ interface UrlModel {
   stealth?: boolean;
   /** Present as a visitor from a locale and timezone. */
   location?: BrowserLocation;
+  /** Initial Playwright storageState (cookies + localStorage) to restore. */
+  storage_state?: BrowserStorageState;
+  /** When true, return the updated storageState after the scrape finishes. */
+  save_storage_state?: boolean;
 }
+
+type BrowserStorageState = {
+  cookies: Array<{
+    name: string;
+    value: string;
+    domain: string;
+    path: string;
+    expires: number;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: 'Strict' | 'Lax' | 'None';
+  }>;
+  origins: Array<{
+    origin: string;
+    localStorage: Array<{ name: string; value: string }>;
+  }>;
+};
 
 type BrowserLocation = {
   locale?: string;
@@ -261,6 +282,7 @@ const createContext = async (
   mobile: boolean = false,
   stealth: boolean = false,
   location?: BrowserLocation,
+  storageState?: BrowserStorageState,
 ): Promise<{
   context: BrowserContext;
   securityState: ContextSecurityState;
@@ -300,6 +322,7 @@ const createContext = async (
           },
         }
       : {}),
+    ...(storageState ? { storageState } : {}),
   };
 
   contextOptions.proxy = {
@@ -495,7 +518,19 @@ app.post('/scrape', async (req: Request, res: Response) => {
     capture_network,
     stealth = false,
     location,
+    storage_state,
+    save_storage_state = false,
   }: UrlModel = req.body;
+
+  if (
+    storage_state !== undefined &&
+    (typeof storage_state !== 'object' ||
+      storage_state === null ||
+      !Array.isArray(storage_state.cookies) ||
+      !Array.isArray(storage_state.origins))
+  ) {
+    return res.status(400).json({ error: 'Invalid storage_state payload' });
+  }
 
   const timeout = Math.min(
     Math.max(Number(requestedTimeout) || 15000, 1000),
@@ -576,6 +611,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
       mobile,
       stealth,
       location,
+      storage_state,
     );
     requestContext = contextBundle.context;
     securityState = contextBundle.securityState;
@@ -668,12 +704,18 @@ app.post('/scrape', async (req: Request, res: Response) => {
       );
       const captured: NetworkCaptureResult | undefined =
         await networkCapture?.collect();
-      return { scraped, captured };
+      const savedStorageState: BrowserStorageState | undefined =
+        save_storage_state ? await requestContext!.storageState() : undefined;
+      return { scraped, captured, savedStorageState };
     })();
     // The loser of the race keeps running until the context closes below;
     // its rejection then must not surface as an unhandled one.
     work.catch(() => {});
-    const { scraped: result, captured: network } = await Promise.race([
+    const {
+      scraped: result,
+      captured: network,
+      savedStorageState,
+    } = await Promise.race([
       work,
       new Promise<never>((_, reject) => {
         deadlineTimer = setTimeout(
@@ -708,6 +750,7 @@ app.post('/scrape', async (req: Request, res: Response) => {
       ...(result.screenshot && { screenshot: result.screenshot }),
       ...(network && { network }),
       ...(stealth && { stealth: true }),
+      ...(savedStorageState && { storageState: savedStorageState }),
     });
   } catch (error) {
     if (error instanceof InsecureConnectionError) {

@@ -16,6 +16,10 @@ _OPTION_FORMAT_KEYS: Dict[str, Dict[str, str]] = {
         "max_body_bytes": "maxBodyBytes",
     },
     "focus": {"max_tokens": "maxTokens"},
+    "structured": {
+        "include_auto": "includeAuto",
+        "include_tables": "includeTables",
+    },
 }
 
 

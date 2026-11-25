@@ -521,6 +521,7 @@ class Document(BaseModel):
     change_tracking: Optional[Dict[str, Any]] = None
     network: Optional[Dict[str, Any]] = None
     focus: Optional[Dict[str, Any]] = None
+    structured: Optional[Dict[str, Any]] = None
     branding: Optional[BrandingProfile] = None
     product: Optional[ProductProfile] = None
     menu: Optional[MenuProfile] = None
@@ -757,6 +758,15 @@ class FocusFormat(BaseModel):
     max_tokens: Optional[int] = None
 
 
+class StructuredFormat(BaseModel):
+    """Deterministic, zero-LLM structured extraction (auto-discovery + CSS rules)."""
+
+    type: Literal["structured"] = "structured"
+    rules: Optional[Dict[str, Any]] = None
+    include_auto: Optional[bool] = None
+    include_tables: Optional[bool] = None
+
+
 class ScreenshotFormat(BaseModel):
     """Configuration for screenshot format."""
 
@@ -810,6 +820,7 @@ FormatOption = Union[
     ScreenshotFormat,
     NetworkFormat,
     FocusFormat,
+    StructuredFormat,
     AttributesFormat,
     QuestionFormat,
     HighlightsFormat,
