@@ -55,10 +55,10 @@ export async function scrapeURLWithPlaywright(
   const locale = browserLocaleFor(meta.options.location);
 
   const profile = meta.options.profile;
-  const useLocalProfile =
-    !!profile &&
-    localProfileStoreEnabled &&
-    !meta.internalOptions.zeroDataRetention;
+  if (profile && meta.internalOptions.zeroDataRetention) {
+    throw new Error("Browser profiles cannot be used with zeroDataRetention.");
+  }
+  const useLocalProfile = !!profile && localProfileStoreEnabled;
   const profileTeamId = meta.internalOptions.teamId ?? "bypass";
   const initialStorageState = useLocalProfile
     ? await getLocalProfile(profileTeamId, profile.name)
@@ -147,7 +147,11 @@ export async function scrapeURLWithPlaywright(
   let profileSaveWarning: string | undefined;
   if (saveStorageState && response.storageState) {
     try {
-      await saveLocalProfile(profileTeamId, profile.name, response.storageState);
+      await saveLocalProfile(
+        profileTeamId,
+        profile.name,
+        response.storageState,
+      );
     } catch (error) {
       meta.logger.warn("Failed to save local browser profile", {
         profile: profile.name,

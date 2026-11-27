@@ -49,7 +49,11 @@ describe("extractStructuredData", () => {
   `;
 
   it("auto-discovers JSON-LD, OpenGraph, Twitter, tables, and feeds", () => {
-    const res = extractStructuredData(sampleHtml, {}, "https://shop.example.com/catalog");
+    const res = extractStructuredData(
+      sampleHtml,
+      {},
+      "https://shop.example.com/catalog",
+    );
 
     expect(res.data).toBeUndefined();
     expect(res.jsonLd).toEqual([
@@ -162,6 +166,59 @@ describe("diffStructuredValues", () => {
 
   it("returns an empty array when values are identical", () => {
     const value = { price: 10, tags: ["a", "b"] };
-    expect(diffStructuredValues(value, { price: 10, tags: ["a", "b"] })).toEqual([]);
+    expect(
+      diffStructuredValues(value, { price: 10, tags: ["a", "b"] }),
+    ).toEqual([]);
+  });
+});
+
+describe("extractStructuredData hardening", () => {
+  it("parses number and integer transforms from prose with 'e' and decimals", () => {
+    const html = `
+      <span class="p1">Price: $49.99</span>
+      <span class="p2">Save $5</span>
+      <span class="p3">1,250 items left</span>
+      <span class="int">$49.99</span>
+    `;
+    const res = extractStructuredData(html, {
+      includeAuto: false,
+      includeTables: false,
+      rules: {
+        p1: { selector: ".p1", transform: "number" },
+        p2: { selector: ".p2", transform: "number" },
+        p3: { selector: ".p3", transform: "number" },
+        int: { selector: ".int", transform: "integer" },
+      },
+    });
+    expect(res.data).toEqual({
+      p1: 49.99,
+      p2: 5,
+      p3: 1250,
+      int: 49,
+    });
+  });
+
+  it("rejects catastrophic backtracking regexes and unsafe __proto__ keys", () => {
+    const html = `
+      <html><head><meta property="og:toString" content="safe-og" /></head>
+      <body>
+        <p class="redos">aaaaaaaaaaaaaaaaaaaaaaaaaaaa!</p>
+        <table><thead><tr><th>__proto__</th><th>Name</th></tr></thead>
+        <tbody><tr><td>bad</td><td>Widget</td></tr></tbody></table>
+      </body></html>
+    `;
+    const res = extractStructuredData(html, {
+      includeAuto: true,
+      includeTables: true,
+      rules: {
+        redos: { selector: ".redos", regex: "(a+)+$" },
+      },
+    });
+    expect(res.data).toEqual({ redos: null });
+    expect(res.openGraph).toEqual({ toString: "safe-og" });
+    expect(Object.getPrototypeOf(res.tables![0].rows[0])).toBe(
+      Object.prototype,
+    );
+    expect(res.tables![0].rows[0]).toEqual({ Name: "Widget" });
   });
 });

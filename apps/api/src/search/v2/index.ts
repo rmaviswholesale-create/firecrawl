@@ -75,11 +75,18 @@ export async function search({
       return results;
     }
 
+    const hasDomainFilters = Boolean(
+      includeDomains?.length || excludeDomains?.length,
+    );
+    const fetchLimit = hasDomainFilters
+      ? Math.min(num_results * 3, 50)
+      : num_results;
+
     if (config.SEARXNG_ENDPOINT) {
       logger.info("Using searxng search");
       const results = filterSearchResultsByDomain(
         await searxng_search(query, {
-          num_results,
+          num_results: fetchLimit,
           tbs,
           filter,
           lang,
@@ -90,12 +97,14 @@ export async function search({
         includeDomains,
         excludeDomains,
       );
-      if (results.web && results.web.length > 0) return results;
+      if (results.web && results.web.length > 0) {
+        return { ...results, web: results.web.slice(0, num_results) };
+      }
     }
 
     logger.info("Using DuckDuckGo search");
     const ddgResults = filterSearchResultsByDomain(
-      await ddgSearch(query, num_results, {
+      await ddgSearch(query, fetchLimit, {
         tbs,
         lang,
         country,
@@ -105,7 +114,9 @@ export async function search({
       includeDomains,
       excludeDomains,
     );
-    if (ddgResults.web && ddgResults.web.length > 0) return ddgResults;
+    if (ddgResults.web && ddgResults.web.length > 0) {
+      return { ...ddgResults, web: ddgResults.web.slice(0, num_results) };
+    }
 
     // Fallback to empty response
     return {};
@@ -116,7 +127,11 @@ export async function search({
 }
 
 function normalizeDomain(domain: string): string {
-  return domain.trim().toLowerCase().replace(/^\.+/, "");
+  return domain
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "")
+    .replace(/^\.+|\.+$/g, "");
 }
 
 function hostMatchesDomain(hostname: string, domain: string): boolean {

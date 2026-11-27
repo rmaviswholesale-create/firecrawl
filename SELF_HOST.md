@@ -229,7 +229,7 @@ never returned by the API. `diff` is `null` when the diff is larger than
 | `POST /v2/watch` | Create a watch. |
 | `GET /v2/watch` | List watches. |
 | `GET /v2/watch/<id>` | One watch, with `lastStatus` and `nextRunAt`. |
-| `PATCH /v2/watch/<id>` | Update `schedule`, `enabled` (pause/resume), `webhook`, `notifyOn`, `scrapeOptions`, `focus`, or `extractRules` without losing history. |
+| `PATCH /v2/watch/<id>` | Update `schedule`, `enabled` (pause/resume), `webhook`, `notifyOn`, `scrapeOptions`, `focus`, or `extractRules` without losing run history (updating `extractRules` resets the saved extracted baseline so the next run reports `new`). |
 | `DELETE /v2/watch/<id>` | Delete it and its run history. |
 | `POST /v2/watch/<id>/run` | Run it now and return the result. |
 | `GET /v2/watch/<id>/runs` | Up to 50 recent runs, newest first. |
@@ -254,8 +254,7 @@ Limits to know:
 - Runs missed while the stack was down are not replayed: a due watch runs
   once when the worker returns.
 - Watches and run history live in Redis, like snapshots.
-- A watch's baseline is a snapshot, so it expires with `SNAPSHOT_TTL_DAYS`.
-  A watch that runs less often than that reports `new` every time.
+- For plain `changeTracking` and `focus` watches, the baseline is a snapshot and expires with `SNAPSHOT_TTL_DAYS` (running less often reports `new` every time). `extractRules` watches store their extracted state in Redis without a TTL.
 - Webhooks to private addresses are refused unless `ALLOW_LOCAL_WEBHOOKS` is
   set.
 
@@ -313,7 +312,8 @@ curl -s localhost:3002/v2/scrape -H 'Content-Type: application/json' -d '{
   "url": "https://app.example.com/login",
   "profile": {"name": "my-portal", "saveChanges": true},
   "actions": [
-    {"type": "write", "selector": "#email", "text": "me@example.com"},
+    {"type": "click", "selector": "#email"},
+    {"type": "write", "text": "me@example.com"},
     {"type": "click", "selector": "button[type=submit]"},
     {"type": "wait", "milliseconds": 1000}
   ]
@@ -409,10 +409,12 @@ other variables in the API container's environment.
 | `ADMIN_INTERNAL_HOST` | `localhost` | Address the internal listener binds to. Bind a wider address only behind a network policy that limits who can reach the port. |
 
 Header-authenticated routes: `GET /admin/ops/redis-health`,
+`GET /admin/ops/feng-check`,
 `POST /admin/ops/acuc-cache-clear`,
 `POST /admin/ops/ip-restriction-cache-clear`,
-`POST /admin/ops/key-restriction-cache-clear` and
-`POST /admin/ops/concurrency-queue-backfill`.
+`POST /admin/ops/key-restriction-cache-clear`,
+`POST /admin/ops/concurrency-queue-backfill` and
+`POST /admin/ops/crawl-monitor` (still requires an API key and credits).
 
 Internal listener routes, none of which need a key: the queue UI at
 `/admin/queues`; metrics at `GET /admin/metrics`, `GET /admin/nuq-metrics`,

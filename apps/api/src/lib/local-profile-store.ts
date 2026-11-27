@@ -98,9 +98,13 @@ export async function getLocalProfile(
     "state",
   );
   if (!compressed) return null;
-  const raw = (await gunzipAsync(compressed)).toString("utf8");
-  const parsed = browserStorageStateSchema.safeParse(JSON.parse(raw));
-  return parsed.success ? parsed.data : null;
+  try {
+    const raw = (await gunzipAsync(compressed)).toString("utf8");
+    const parsed = browserStorageStateSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function listLocalProfiles(

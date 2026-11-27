@@ -14,23 +14,29 @@ vi.mock("../../lib/watch-store", () => ({
   saveWatch: (...args: unknown[]) => mockSaveWatch(...args),
   clearWatchExtractedState: (...args: unknown[]) =>
     mockClearWatchExtractedState(...args),
-  countWatches: vi.fn(),
+  countWatches: vi.fn().mockResolvedValue(0),
   deleteWatch: vi.fn(),
   listWatchRuns: vi.fn(),
   listWatches: vi.fn(),
-  newWatchId: vi.fn(),
+  newWatchId: vi.fn(() => WATCH_ID),
 }));
 
 vi.mock("../../services/monitoring/cron", () => ({
-  getNextMonitorRunAt: vi.fn(() => new Date("2026-12-01T00:00:00.000Z")),
+  getNextMonitorRunAt: vi.fn(
+    (_cron: string, from: Date = new Date("2026-12-01T00:00:00.000Z")) =>
+      new Date(from.getTime() + 86_400_000),
+  ),
 }));
 
 vi.mock("../../services/watch/runner", () => ({
-  nextRunAt: vi.fn(() => new Date("2026-12-01T00:00:00.000Z")),
+  nextRunAt: vi.fn(
+    (_schedule: unknown, from: Date = new Date("2026-12-01T00:00:00.000Z")) =>
+      new Date(from.getTime() + 86_400_000),
+  ),
   runWatch: vi.fn(),
 }));
 
-import { watchUpdateController } from "./watch";
+import { watchCreateController, watchUpdateController } from "./watch";
 
 function makeRes() {
   const res: any = {
@@ -141,5 +147,53 @@ describe("watchUpdateController", () => {
     await watchUpdateController(reqSame, res2);
     expect(res2.statusCode).toBe(200);
     expect(mockClearWatchExtractedState).not.toHaveBeenCalled();
+  });
+
+  it("accepts SDK origin on create and update, and rejects origin-only updates", async () => {
+    const createReq: any = {
+      auth: { team_id: "team-1" },
+      body: {
+        url: "https://example.com",
+        schedule: { cron: "0 3 * * *" },
+        origin: "js-sdk@4.49.1",
+      },
+    };
+    const createRes = makeRes();
+    await watchCreateController(createReq, createRes);
+    expect(createRes.statusCode).toBe(200);
+    expect(createRes.body.watch.origin).toBeUndefined();
+
+    const updateReq: any = {
+      auth: { team_id: "team-1" },
+      params: { watchId: WATCH_ID },
+      body: { enabled: false, origin: "python-sdk@4.0.0" },
+    };
+    const updateRes = makeRes();
+    await watchUpdateController(updateReq, updateRes);
+    expect(updateRes.statusCode).toBe(200);
+
+    const emptyUpdateReq: any = {
+      auth: { team_id: "team-1" },
+      params: { watchId: WATCH_ID },
+      body: { origin: "js-sdk@4.49.1" },
+    };
+    const emptyUpdateRes = makeRes();
+    await watchUpdateController(emptyUpdateReq, emptyUpdateRes);
+    expect(emptyUpdateRes.statusCode).toBe(400);
+  });
+
+  it("rejects specifying both focus and extractRules on create", async () => {
+    const req: any = {
+      auth: { team_id: "team-1" },
+      body: {
+        url: "https://example.com",
+        schedule: { cron: "0 3 * * *" },
+        focus: { query: "pricing" },
+        extractRules: { price: ".price" },
+      },
+    };
+    const res = makeRes();
+    await watchCreateController(req, res);
+    expect(res.statusCode).toBe(400);
   });
 });

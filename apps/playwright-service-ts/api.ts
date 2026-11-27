@@ -527,7 +527,23 @@ app.post('/scrape', async (req: Request, res: Response) => {
     (typeof storage_state !== 'object' ||
       storage_state === null ||
       !Array.isArray(storage_state.cookies) ||
-      !Array.isArray(storage_state.origins))
+      !Array.isArray(storage_state.origins) ||
+      storage_state.cookies.some(
+        (c: any) =>
+          !c ||
+          typeof c !== 'object' ||
+          typeof c.name !== 'string' ||
+          typeof c.value !== 'string' ||
+          typeof c.domain !== 'string' ||
+          typeof c.path !== 'string',
+      ) ||
+      storage_state.origins.some(
+        (o: any) =>
+          !o ||
+          typeof o !== 'object' ||
+          typeof o.origin !== 'string' ||
+          !Array.isArray(o.localStorage),
+      ))
   ) {
     return res.status(400).json({ error: 'Invalid storage_state payload' });
   }
