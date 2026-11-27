@@ -5,10 +5,7 @@ import { scrapeOptions } from "../../controllers/v2/types";
 import { createMarkdownChangeDiff } from "../../lib/change-tracking-diff";
 import { CostTracking } from "../../lib/cost-tracking";
 import { logger as _logger } from "../../lib/logger";
-import {
-  getLatestSnapshot,
-  recordSnapshot,
-} from "../../lib/snapshot-store";
+import { getLatestSnapshot, recordSnapshot } from "../../lib/snapshot-store";
 import { diffStructuredValues } from "../../lib/structured-extract";
 import {
   type ChangeStatus,
@@ -89,6 +86,7 @@ async function deliverWebhook(
         dispatcher: getSecureDispatcherNoCookies(),
         signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
+      await response.body?.cancel().catch(() => {});
       if (response.ok) {
         return {
           delivered: true,
@@ -167,8 +165,7 @@ export async function runWatch(
           rules: watch.extractRules,
           includeAuto: false,
         });
-      }
-      if (hasFocus && watch.focus) {
+      } else if (hasFocus && watch.focus) {
         formats.push({
           type: "focus",
           query: watch.focus.query,
@@ -207,6 +204,11 @@ export async function runWatch(
       const statusCode = doc.metadata?.statusCode ?? null;
 
       if (hasExtractRules) {
+        if (statusCode !== 404 && statusCode !== 410 && !doc.structured?.data) {
+          throw new Error(
+            doc.warning ?? "Structured extraction produced no result",
+          );
+        }
         const extracted = doc.structured?.data ?? {};
         run.extracted = extracted;
         const previous = await getWatchExtractedState(teamId, watch.id);
@@ -231,9 +233,19 @@ export async function runWatch(
           }
         }
         if (run.changeStatus !== "removed") {
-          await saveWatchExtractedState(teamId, watch.id, extracted);
+          const latestWatch = await getWatch(teamId, id);
+          if (
+            latestWatch &&
+            JSON.stringify(latestWatch.extractRules ?? null) ===
+              JSON.stringify(watch.extractRules ?? null)
+          ) {
+            await saveWatchExtractedState(teamId, watch.id, extracted);
+          }
         }
       } else if (hasFocus) {
+        if (statusCode !== 404 && statusCode !== 410 && !doc.focus) {
+          throw new Error(doc.warning ?? "Focus extraction produced no result");
+        }
         const focusedMarkdown = doc.focus?.markdown ?? "";
         const scope = { teamId, url: watch.url, tag: watchTag + ":focus" };
         const previous = await getLatestSnapshot(scope);
@@ -274,9 +286,7 @@ export async function runWatch(
       } else {
         const tracking = doc.changeTracking;
         if (!tracking) {
-          throw new Error(
-            doc.warning ?? "Change tracking produced no result",
-          );
+          throw new Error(doc.warning ?? "Change tracking produced no result");
         }
         run.changeStatus = tracking.changeStatus as ChangeStatus;
         run.snapshotId = tracking.snapshotId ?? null;

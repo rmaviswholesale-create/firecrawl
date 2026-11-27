@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from ...utils.error_handler import FirecrawlError, handle_response_error
 from ...utils.http_client_async import AsyncHttpClient
@@ -57,7 +57,7 @@ async def run_watch(client: AsyncHttpClient, watch_id: str) -> Dict[str, Any]:
 async def list_watch_runs(
     client: AsyncHttpClient, watch_id: str, limit: Optional[int] = None
 ) -> List[Dict[str, Any]]:
-    query = f"?limit={limit}" if limit is not None else ""
+    query = f"?{urlencode({'limit': limit})}" if limit is not None else ""
     response = await client.get(f"/v2/watch/{quote(watch_id, safe='')}/runs{query}")
     body = _check_ok(response, "list watch runs")
     return body["runs"]

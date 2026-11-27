@@ -524,7 +524,13 @@ export const extractRuleSchema: z.ZodType<ExtractRuleSchemaInput> = z.lazy(() =>
       all: z.boolean().optional(),
       regex: z.string().min(1).max(200).optional(),
       transform: extractTransformSchema.optional(),
-      fields: z.record(z.string().min(1).max(128), extractRuleSchema).optional(),
+      fields: z
+        .record(z.string().min(1).max(128), extractRuleSchema)
+        .refine(
+          r => Object.keys(r).length <= 100,
+          "fields must contain at most 100 entries",
+        )
+        .optional(),
     }),
   ]),
 );
@@ -534,7 +540,13 @@ export const extractRuleSchema: z.ZodType<ExtractRuleSchemaInput> = z.lazy(() =>
 // declarative CSS/attribute/regex/transform extraction rules.
 const structuredFormatWithOptions = z.strictObject({
   type: z.literal("structured"),
-  rules: z.record(z.string().min(1).max(128), extractRuleSchema).optional(),
+  rules: z
+    .record(z.string().min(1).max(128), extractRuleSchema)
+    .refine(
+      r => Object.keys(r).length <= 100,
+      "rules must contain at most 100 entries",
+    )
+    .optional(),
   includeAuto: z.boolean().optional(),
   includeTables: z.boolean().optional(),
 });
@@ -1657,7 +1669,7 @@ export type FocusResult = {
   sections: { heading: string | null; score: number }[];
 };
 
-export type StructuredResult = {
+type StructuredResult = {
   data?: Record<string, unknown>;
   jsonLd?: unknown[];
   openGraph?: Record<string, string>;

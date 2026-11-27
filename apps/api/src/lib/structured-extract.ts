@@ -11,7 +11,7 @@ import { load, type Cheerio, type CheerioAPI } from "cheerio";
  *    groups, and typed transforms (`number`, `integer`, `boolean`, `url`, etc.).
  */
 
-export type ExtractTransform =
+type ExtractTransform =
   | "trim"
   | "number"
   | "integer"
@@ -20,7 +20,7 @@ export type ExtractTransform =
   | "lowercase"
   | "uppercase";
 
-export type ExtractRuleObject = {
+type ExtractRuleObject = {
   selector: string;
   attr?: string;
   all?: boolean;
@@ -37,13 +37,13 @@ export type StructuredExtractOptions = {
   includeTables?: boolean;
 };
 
-export type StructuredTable = {
+type StructuredTable = {
   caption?: string;
   headers: string[];
   rows: Record<string, string>[];
 };
 
-export type StructuredFeed = {
+type StructuredFeed = {
   title?: string;
   type: string;
   href: string;
@@ -97,16 +97,18 @@ function applyTransform(
     case "url":
       return resolveUrl(trimmed, baseUrl);
     case "number": {
-      const cleaned = trimmed.replace(/[^0-9eE.+-]/g, "");
-      if (!cleaned) return null;
-      const num = Number(cleaned);
+      const noCommas = trimmed.replace(/,/g, "");
+      const match = noCommas.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+      if (!match) return null;
+      const num = Number(match[0]);
       return Number.isFinite(num) ? num : null;
     }
     case "integer": {
-      const cleaned = trimmed.replace(/[^0-9+-]/g, "");
-      if (!cleaned) return null;
-      const num = Number.parseInt(cleaned, 10);
-      return Number.isFinite(num) ? num : null;
+      const noCommas = trimmed.replace(/,/g, "");
+      const match = noCommas.match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+      if (!match) return null;
+      const num = Number(match[0]);
+      return Number.isFinite(num) ? Math.trunc(num) : null;
     }
     case "boolean": {
       const lower = trimmed.toLowerCase();
@@ -125,8 +127,26 @@ function applyTransform(
   }
 }
 
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function safeSet<T>(obj: Record<string, T>, key: string, value: T): void {
+  if (!key || UNSAFE_KEYS.has(key)) return;
+  Object.defineProperty(obj, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
+function isSafeRegex(pattern: string): boolean {
+  // Reject obvious catastrophic backtracking (quantified groups containing quantifiers).
+  return !/\((?:[^()\\]|\\.)*[+*?](?:[^()\\]|\\.)*\)[+*?{]/.test(pattern);
+}
+
 function applyRegex(value: string, pattern: string | undefined): string | null {
   if (!pattern) return value;
+  if (!isSafeRegex(pattern)) return null;
   const bounded =
     value.length > MAX_REGEX_INPUT_CHARS
       ? value.slice(0, MAX_REGEX_INPUT_CHARS)
@@ -180,12 +200,10 @@ function evaluateRule(
     if (rule.fields && Object.keys(rule.fields).length > 0) {
       const record: Record<string, unknown> = {};
       for (const [fieldName, childRule] of Object.entries(rule.fields)) {
-        record[fieldName] = evaluateRule(
-          $,
-          el,
-          childRule,
-          baseUrl,
-          depth + 1,
+        safeSet(
+          record,
+          fieldName,
+          evaluateRule($, el, childRule, baseUrl, depth + 1),
         );
       }
       return record;
@@ -246,18 +264,15 @@ function extractJsonLd($: CheerioAPI): unknown[] {
   return results;
 }
 
-function extractMetaMap(
-  $: CheerioAPI,
-  prefix: string,
-): Record<string, string> {
+function extractMetaMap($: CheerioAPI, prefix: string): Record<string, string> {
   const map: Record<string, string> = {};
   $("meta").each((_, el) => {
     const key = $(el).attr("property") ?? $(el).attr("name") ?? "";
     const content = $(el).attr("content");
     if (key.startsWith(prefix) && content !== undefined) {
       const shortKey = key.slice(prefix.length);
-      if (shortKey && !(shortKey in map)) {
-        map[shortKey] = content.trim();
+      if (shortKey && !Object.hasOwn(map, shortKey)) {
+        safeSet(map, shortKey, content.trim());
       }
     }
   });
@@ -272,7 +287,9 @@ function extractTables($: CheerioAPI): StructuredTable[] {
     // Skip nested layout tables that contain other tables.
     if ($table.find("table").length > 0) return;
 
-    const caption = $table.find("caption").first().text().replace(/\s+/g, " ").trim() || undefined;
+    const caption =
+      $table.find("caption").first().text().replace(/\s+/g, " ").trim() ||
+      undefined;
     const rows: string[][] = [];
     let headers: string[] = [];
 
@@ -309,10 +326,7 @@ function extractTables($: CheerioAPI): StructuredTable[] {
 
     if (rows.length === 0) return;
 
-    const maxCols = Math.max(
-      headers.length,
-      ...rows.map(r => r.length),
-    );
+    const maxCols = Math.max(headers.length, ...rows.map(r => r.length));
     const effectiveHeaders = Array.from({ length: maxCols }, (_, idx) => {
       const name = headers[idx]?.trim();
       return name || `col_${idx + 1}`;
@@ -321,7 +335,7 @@ function extractTables($: CheerioAPI): StructuredTable[] {
     const records = rows.map(cells => {
       const record: Record<string, string> = {};
       for (let i = 0; i < effectiveHeaders.length; i++) {
-        record[effectiveHeaders[i]] = cells[i] ?? "";
+        safeSet(record, effectiveHeaders[i], cells[i] ?? "");
       }
       return record;
     });
@@ -374,7 +388,7 @@ export function extractStructuredData(
   if (hasRules && options.rules) {
     const data: Record<string, unknown> = {};
     for (const [key, rule] of Object.entries(options.rules)) {
-      data[key] = evaluateRule($, null, rule, baseUrl, 0);
+      safeSet(data, key, evaluateRule($, null, rule, baseUrl, 0));
     }
     result.data = data;
   }
@@ -415,10 +429,7 @@ export function diffStructuredValues(
   if (out.length >= limit) return out;
   if (Object.is(before, after)) return out;
 
-  if (
-    Array.isArray(before) &&
-    Array.isArray(after)
-  ) {
+  if (Array.isArray(before) && Array.isArray(after)) {
     const maxLen = Math.max(before.length, after.length);
     for (let i = 0; i < maxLen && out.length < limit; i++) {
       const path = `${prefix}[${i}]`;

@@ -40,4 +40,16 @@ describe("filterSearchResultsByDomain", () => {
       "https://example.com/pricing",
     ]);
   });
+
+  it("normalizes trailing dots and ports on domain filters", () => {
+    const filtered = filterSearchResultsByDomain(sample, [
+      "example.com.",
+      "other.org:8443",
+    ]);
+    expect(filtered.web?.map(r => r.url)).toEqual([
+      "https://docs.example.com/guide",
+      "https://example.com/pricing",
+      "https://other.org/page",
+    ]);
+  });
 });

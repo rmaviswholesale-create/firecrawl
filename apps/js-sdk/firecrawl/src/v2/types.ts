@@ -2644,7 +2644,7 @@ export interface Watch {
   notifyOn: WatchChangeStatus[];
   scrapeOptions?: Record<string, unknown> | null;
   focus?: { query: string; maxTokens?: number } | null;
-  extractRules?: Record<string, unknown> | null;
+  extractRules?: Record<string, ExtractRule> | null;
   createdAt: string;
   lastRunAt: string | null;
   lastStatus: WatchChangeStatus | "error" | null;
@@ -2675,11 +2675,11 @@ export interface CreateWatchRequest {
   url: string;
   schedule: WatchSchedule;
   enabled?: boolean;
-  webhook?: WatchWebhookConfig | null;
+  webhook?: WatchWebhookConfig;
   notifyOn?: WatchChangeStatus[];
-  scrapeOptions?: Record<string, unknown> | null;
-  focus?: { query: string; maxTokens?: number } | null;
-  extractRules?: Record<string, unknown> | null;
+  scrapeOptions?: Record<string, unknown>;
+  focus?: { query: string; maxTokens?: number };
+  extractRules?: Record<string, ExtractRule>;
 }
 
 export interface UpdateWatchRequest {
@@ -2689,13 +2689,14 @@ export interface UpdateWatchRequest {
   notifyOn?: WatchChangeStatus[];
   scrapeOptions?: Record<string, unknown> | null;
   focus?: { query: string; maxTokens?: number } | null;
-  extractRules?: Record<string, unknown> | null;
+  extractRules?: Record<string, ExtractRule> | null;
 }
 
 export interface LocalProfileSummary {
   name: string;
   cookieCount: number;
   originCount: number;
+  sizeBytes: number;
   updatedAt: string;
 }
 
@@ -2706,6 +2707,7 @@ export interface SnapshotSummary {
   capturedAt: string;
   statusCode: number | null;
   contentHash: string;
+  sizeBytes: number;
 }
 
 export interface Snapshot extends SnapshotSummary {

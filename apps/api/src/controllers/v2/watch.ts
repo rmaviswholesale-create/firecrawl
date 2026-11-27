@@ -100,20 +100,26 @@ const extractRulesSchema = z
     "extractRules must contain between 1 and 100 fields",
   );
 
-const createSchema = z.strictObject({
-  url: urlSchema,
-  schedule: scheduleSchema,
-  enabled: z.boolean().default(true),
-  webhook: webhookSchema.optional(),
-  notifyOn: z
-    .enum(["new", "same", "changed", "removed"])
-    .array()
-    .min(1)
-    .default(["changed", "removed"]),
-  scrapeOptions: watchScrapeOptionsSchema.optional(),
-  focus: watchFocusSchema.optional(),
-  extractRules: extractRulesSchema.optional(),
-});
+const createSchema = z
+  .strictObject({
+    url: urlSchema,
+    schedule: scheduleSchema,
+    enabled: z.boolean().default(true),
+    webhook: webhookSchema.optional(),
+    notifyOn: z
+      .enum(["new", "same", "changed", "removed"])
+      .array()
+      .min(1)
+      .default(["changed", "removed"]),
+    scrapeOptions: watchScrapeOptionsSchema.optional(),
+    focus: watchFocusSchema.optional(),
+    extractRules: extractRulesSchema.optional(),
+    origin: z.string().optional(),
+  })
+  .refine(
+    data => !(data.focus && data.extractRules),
+    "Specify either focus or extractRules, not both",
+  );
 
 const updateSchema = z
   .strictObject({
@@ -128,9 +134,10 @@ const updateSchema = z
     scrapeOptions: watchScrapeOptionsSchema.nullable().optional(),
     focus: watchFocusSchema.nullable().optional(),
     extractRules: extractRulesSchema.nullable().optional(),
+    origin: z.string().optional(),
   })
   .refine(
-    data => Object.keys(data).length > 0,
+    data => Object.keys(data).some(k => k !== "origin"),
     "Provide at least one field to update",
   );
 
@@ -170,7 +177,8 @@ function validateAndComputeNextRun(
   } catch (error) {
     return {
       ok: false,
-      error: "schedule: " + (error instanceof Error ? error.message : "invalid"),
+      error:
+        "schedule: " + (error instanceof Error ? error.message : "invalid"),
     };
   }
 }

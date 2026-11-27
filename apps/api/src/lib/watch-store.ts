@@ -20,7 +20,7 @@ export type WatchSchedule =
 
 export type ChangeStatus = "new" | "same" | "changed" | "removed";
 
-export type WatchScrapeOptions = {
+type WatchScrapeOptions = {
   waitFor?: number;
   mobile?: boolean;
   location?: { country?: string; languages?: string[] };
@@ -34,7 +34,7 @@ export type WatchScrapeOptions = {
   timeout?: number;
 };
 
-export type WatchFocusConfig = {
+type WatchFocusConfig = {
   query: string;
   maxTokens?: number;
 };
@@ -86,8 +86,8 @@ export type WatchRun = {
 };
 
 const RUN_HISTORY_LIMIT = 50;
-// Long enough for a slow scrape; a crashed worker's lock expires on its own.
-const RUN_LOCK_MS = 5 * 60_000;
+// Long enough for a slow scrape + webhook retries; a crashed worker's lock expires on its own.
+const RUN_LOCK_MS = 10 * 60_000;
 
 const defKey = (teamId: string, id: string) => `watch:def:${teamId}:${id}`;
 const idxKey = (teamId: string) => `watch:idx:${teamId}`;
